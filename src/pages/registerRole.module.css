@@ -1,0 +1,88 @@
+.container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background: linear-gradient(90deg, #f7d6e6, #910c4e);
+}
+
+.form-box {
+  background: #fff;
+  padding: 40px;
+  border-radius: 20px;
+  width: 400px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  text-align: center;
+}
+
+.title {
+  font-size: 28px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 8px;
+}
+
+.subtitle {
+  font-size: 14px;
+  color: #666;
+  margin-bottom: 25px;
+}
+
+.input-box {
+  position: relative;
+  margin-bottom: 20px;
+}
+
+.input-box input {
+  width: 100%;
+  padding: 12px 15px;
+  border-radius: 10px;
+  border: 1px solid #ddd;
+  background: #f9f9f9;
+  font-size: 15px;
+}
+
+.role-wrapper {
+  display: flex;
+  justify-content: space-around;
+  margin: 20px 0 30px;
+}
+
+.role-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 15px;
+  border: 2px solid #ddd;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: 0.3s;
+  font-size: 15px;
+}
+
+.role-option input[type="radio"] {
+  accent-color: #910c4e;
+}
+
+.btn {
+  display: inline-block;
+  width: 100%;
+  padding: 14px;
+  border: 2px solid #910c4e;
+  border-radius: 10px;
+  background: #fff;
+  color: #910c4e;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn:hover,
+.btn:active {
+  background: linear-gradient(135deg, #b52e6f, #910c4e);
+  color: #fff;
+  border-color: transparent;
+  box-shadow: 0 4px 12px rgba(145, 12, 78, 0.4);
+  transform: translateY(-2px);
+}
