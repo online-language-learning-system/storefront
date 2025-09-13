@@ -1,4 +1,5 @@
 const BASE_URL = "http://localhost:8000/storefront/user";
+//const BASE_URL = import.meta.env.USER_SERVICE_API;
 
 export async function getUserProfile() {
   const res = await fetch(`${BASE_URL}/profile`, {

@@ -1,4 +1,5 @@
 const BASE_URL = "http://localhost:8000/api/course-service";
+//const BASE_URL = import.meta.env.COURSE_SERVICE_API;
 
 // Lấy danh sách khóa học
 export async function getCourses({ courseTitle = "", pageNo = 0, pageSize = 10 }) {

@@ -15,9 +15,6 @@ export default defineConfig({
     strictPort: true,    // nếu port bận sẽ báo lỗi
     open: false,         // không tự mở trình duyệt
     host: "0.0.0.0",     // cho phép truy cập từ bên ngoài container
-    hmr: {
-      overlay: false,
-    },
     fs: {
       strict: false,     // cho phép Vite đọc file ngoài root nếu cần
     },
