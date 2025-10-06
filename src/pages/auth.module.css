@@ -12,7 +12,7 @@ body {
   justify-content: center;
   align-items: center;
   min-height: 100vh;
-  background: linear-gradient(90deg, #f7d6e6, #910c4e); 
+  background: linear-gradient(90deg, #f07db8); 
 }
 
 /* Container */
@@ -126,7 +126,7 @@ body {
 }
 
 
-/* ✅ Button trong form (Login & Register) */
+/*  Button in form (Login & Register) */
 .form-box .btn {
   width: 100%;
   height: 48px;
@@ -151,6 +151,7 @@ body {
 }
 
 .social-icons a {
+  text-decoration: none !important;
   display: inline-flex;
   padding: 10px;
   border: 2px solid #ccc;
@@ -173,7 +174,7 @@ body {
   left: -250%;
   width: 300%;
   height: 100%;
-  background: #910c4e; /* Chủ đạo */
+  background: #910c4e; 
   border-radius: 150px;
   z-index: 2;
   transition: 1.8s ease-in-out;

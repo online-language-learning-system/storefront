@@ -5,7 +5,7 @@ import routes from "@/routes";
 function App() {
   const { pathname } = useLocation();
 
-  // ẩn navbar khi ở trang auth
+  // ẩn navbar khi ở trang auth hoặc 
   const hideNavbar = pathname.startsWith("/auth");
 
   return (

@@ -1,8 +1,7 @@
-const BASE_URL = "http://localhost:8000/storefront/user";
-//const BASE_URL = import.meta.env.USER_SERVICE_API;
+const BASE_URL = "http://localhost:8000/api/user-service";
 
 export async function getUserProfile() {
-  const res = await fetch(`${BASE_URL}/profile`, {
+  const res = await fetch(`${BASE_URL}/storefront/user/profile`, {
     method: "GET",
     credentials: "include", 
     headers: { "Content-Type": "application/json" }

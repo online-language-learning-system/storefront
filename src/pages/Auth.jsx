@@ -1,10 +1,21 @@
 import React, { useState } from "react";
+//import { useAuth } from "@/context/AuthContext";
 import styles from "./auth.module.css";
 import "@fortawesome/fontawesome-free/css/all.min.css";
 import axios from "axios";
-export default function Auth() {
+export default function Auth({ context }) {
   const [isActive, setIsActive] = useState(false);
+  //const { login } = useAuth();
 
+  /*useEffect(() => {
+    if (context?.authenticatedUser) {
+      // Giả sử Keycloak gắn sẵn thông tin user vào context
+      login({
+        username: context.authenticatedUser,
+        token: context.token, // nếu có
+      });
+    }
+  }, [context, login]);*/
   const handleLogin = (e) => {
     console.log("Login form submitted");
 
@@ -12,7 +23,7 @@ export default function Auth() {
 
     const username = e.target.username.value;
     const password = e.target.password.value;
-
+    
     const form = document.createElement("form");
     form.method = "POST";
     form.action = window.__KEYCLOAK_CONTEXT__.actionUrl;
@@ -32,7 +43,7 @@ export default function Auth() {
     document.body.appendChild(form);
     form.submit();
   };
-
+  
   const handleRegister = async (e) => {
     e.preventDefault();
     console.log("Register form submitted");
@@ -43,21 +54,23 @@ export default function Auth() {
     const passwordConfirm = e.target.passwordconfirm.value;
 
     try {
-      const res = await axios.post("http://localhost:8000/storefront/users", {
-        username,
-        email,
-        password,
-        passwordConfirm,
-      });
+      // Nếu bạn cần token từ backend thì mở comment 2 dòng dưới
+      const tokenRes = await axios.get("http://localhost:8000/get-token");
+      const accessToken = tokenRes.data.accessToken;
+
+      const res = await axios.post(
+        "http://localhost:8000/storefront/users",
+        { username, email, password, passwordConfirm },
+        { headers: { Authorization: `Bearer ${accessToken}` } }
+      );
 
       alert("Đăng ký thành công! Hãy đăng nhập.");
       console.log(res.data);
 
-
       setIsActive(false);
       e.target.reset();
     } catch (err) {
-      console.error(err);
+      console.error("Lỗi đăng ký:", err);
       alert("Đăng ký thất bại!");
     }
   };
