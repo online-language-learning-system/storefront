@@ -6,6 +6,7 @@ import Profile from "@/pages/Profile";
 import Payment from "@/pages/Payment";
 import TryCourse from "@/pages/TryCourse";
 import CourseDetail from "./pages/CourseDetail";
+import PersonalCourse from "@/pages/PersonalCourse";
 export const routes = [
   {
     name: "Trang chủ",
@@ -37,6 +38,10 @@ export const routes = [
   {
     path: "/courses/:id/trial",
     element: <TryCourse />,
+  },
+  {
+    path: "/personal-course",        
+    element: <PersonalCourse />, 
   },
   {
     name: "Cộng đồng",

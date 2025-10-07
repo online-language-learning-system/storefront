@@ -2,9 +2,14 @@ import React from "react";
 
 export default function Footer() {
   return (
-    <footer className="w-full h-full bg-gradient-to-r from-pink-200 to-pink-400 text-white flex flex-col justify-between">
+    <footer className="w-full bg-gradient-to-r from-pink-300 to-pink-500 text-white flex flex-col">
+      
+      {/* Gạch ngang phân cách */}
+      <div className="w-full border-t-2 border-white/40 mb-6"></div>
+
       <div className="flex-grow flex items-center">
         <div className="container mx-auto px-6 grid grid-cols-1 md:grid-cols-3 gap-8">
+          
           {/* Cột giới thiệu */}
           <div>
             <h2 className="text-xl font-bold mb-4">J-Hajime</h2>
@@ -35,7 +40,7 @@ export default function Footer() {
       </div>
 
       {/* Bản quyền */}
-      <div className="py-4 text-center text-sm text-gray-100 border-t border-white/30">
+      <div className="py-4 text-center text-sm text-gray-100">
         © {new Date().getFullYear()} J-Hajime. All rights reserved.
       </div>
     </footer>
