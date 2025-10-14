@@ -7,6 +7,7 @@ import Payment from "@/pages/Payment";
 import TryCourse from "@/pages/TryCourse";
 import CourseDetail from "./pages/CourseDetail";
 import PersonalCourse from "@/pages/PersonalCourse";
+import MyCourse from "./pages/MyCourse";
 export const routes = [
   {
     name: "Trang chủ",
@@ -48,6 +49,11 @@ export const routes = [
     href: "https://www.material-tailwind.com/docs/react/installation",
     target: "_blank",
     element: "",
+  },
+  {
+    name:"Khóa học của tôi",
+    path: "/my-course",
+    element: <MyCourse />, 
   },
 ];
 

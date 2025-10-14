@@ -1,7 +1,7 @@
-import React, { useState } from "react";
-import Footer from "@/components/Footer";
-import { Progress } from "@material-tailwind/react";
-import { BookOpenIcon } from "@heroicons/react/24/solid";
+    import React, { useState } from "react";
+    import Footer from "@/components/Footer";
+    import { Progress } from "@material-tailwind/react";
+    import { BookOpenIcon } from "@heroicons/react/24/solid";
 
 const PersonalCourse = () => {
   const [filter, setFilter] = useState("learning");
