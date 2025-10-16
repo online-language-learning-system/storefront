@@ -26,7 +26,7 @@ export default function Profile() {
   if (!profile) return <p className="text-center mt-10">Không có thông tin người dùng.</p>;
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen bg-[#910c4e]/10"> 
       <div className="container mx-auto py-20 px-6">
         <Typography variant="h2" className="text-center font-bold mb-12">
           Thông tin cá nhân
@@ -50,8 +50,6 @@ export default function Profile() {
               <Typography variant="small" className="text-gray-500">Email</Typography>
               <Typography>{profile.email}</Typography>
             </div>
-
-            <Button color="red" className="mt-4 w-full rounded-full">Chỉnh sửa thông tin</Button>
           </CardBody>
         </Card>
       </div>

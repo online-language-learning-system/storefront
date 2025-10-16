@@ -78,16 +78,11 @@ export async function createCourse(courseData, coverFile, resourceFiles = []) {
 
   const fd = new FormData();
 
-  // Append JSON payload as Blob (application/json)
   fd.append(
     "coursePostDto",
     new Blob([JSON.stringify(payload)], { type: "application/json;charset=UTF-8" })
   );
-
-  // Append cover image
   fd.append("courseImageFile", coverFile);
-
-  // Nếu không có resourceFiles thì gửi dummy file (tránh null bên BE)
   const realFiles = Array.isArray(resourceFiles) ? resourceFiles.filter(f => f instanceof File) : [];
   if (realFiles.length === 0) {
     const dummy = new File([""], ".empty", { type: "application/octet-stream" });
@@ -97,8 +92,6 @@ export async function createCourse(courseData, coverFile, resourceFiles = []) {
       fd.append("resourceFiles", file);
     });
   }
-
-  // Debug log
   console.log("== createCourse: about to send multipart/form-data ==");
   console.log("Headers (auth only):", getAuthHeaders(true));
   for (const [k, v] of fd.entries()) {

@@ -6,8 +6,13 @@ module.exports = withMT({
   theme: {
     extend: {
       fontFamily: {
-       bevietnam: ["'Be Vietnam Pro'", "sans-serif"],
+        bevietnam: ["'Be Vietnam Pro'", "sans-serif"],
+        tahoma: ["Tahoma", "Arial", "sans-serif"],
       },
+    },
+    fontFamily: {
+      sans: ["Tahoma", "Arial", "sans-serif"],
+      serif: ["Tahoma", "Arial", "sans-serif"],
     },
   },
   plugins: [],

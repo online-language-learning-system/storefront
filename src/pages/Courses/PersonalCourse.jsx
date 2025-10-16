@@ -162,7 +162,7 @@ const PersonalCourse = () => {
           </button>
         </div>
       )}
-
+      <div className="w-full border-t-4 border-[#910c4e]/60 mb-4"></div>
       <Footer />
     </div>
   );

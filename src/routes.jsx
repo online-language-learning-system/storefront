@@ -7,18 +7,16 @@ import Payment from "@/pages/Payment";
 import TryCourse from "@/pages/TryCourse";
 import CourseDetail from "./pages/CourseDetail";
 import PersonalCourse from "@/pages/PersonalCourse";
-import MyCourse from "./pages/MyCourse";
 export const routes = [
   {
     name: "Trang chủ",
     path: "/home",
     element: <Home />,
   },
-  /*{
-    name: "profile",
+  {
     path: "/profile",
     element: <Profile />,
-  },*/
+  },
   {
     name: "Khóa học",
     path: "/courses",
@@ -32,6 +30,7 @@ export const routes = [
     path: "/auth",
     element: <Auth />,
   },
+
   {
   path: "/courses/:id",
   element: <CourseDetail />,

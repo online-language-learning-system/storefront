@@ -7,9 +7,14 @@ import Footer from "@/components/Footer";
 const Courses = () => {
   const user = JSON.parse(localStorage.getItem("user") || "{}");
   const [showSuccess, setShowSuccess] = useState(false);
+  const [showWarning, setShowWarning] = useState(false);
   const handleShowSuccess = () => {
   setShowSuccess(true);
   setTimeout(() => setShowSuccess(false), 2000); 
+};
+const handleShowWarning = () => {
+  setShowWarning(true);
+  setTimeout(() => setShowWarning(false), 2000);
 };
   const token = localStorage.getItem("accessToken"); // 
   const navigate = useNavigate();
@@ -44,8 +49,8 @@ const Courses = () => {
     duration: 1,
     courseModules: [
       {
-        title: "Module 1",
-        description: "Mô tả module 1",
+        title: "Chương 1",
+        description: "Mô tả chương 1",
         orderIndex: 1,
         canFreeTrial: false,
         lessons: [
@@ -119,7 +124,9 @@ useEffect(() => {
   newFiles.forEach((file) => {
     const ext = file.name.split(".").pop().toLowerCase();
     if (ext === "pdf") resource.resourceType = "PDF";
-    if (["doc", "docx"].includes(ext)) resource.resourceType = "WORD";
+    else if (["doc", "docx"].includes(ext)) resource.resourceType = "WORD";
+    else if (["mp4", "avi", "mov"].includes(ext)) resource.resourceType = "VIDEO";
+    else resource.resourceType = "OTHER";
   });
 
   setNewCourse({ ...newCourse, courseModules: modules });
@@ -171,136 +178,140 @@ useEffect(() => {
     setNewCourse({ ...newCourse, courseModules: modules });
   };
 
-  // Validation
   const validatePayload = (payload) => {
-    if (!payload.title || !payload.title.trim())
-      throw new Error("Title không được để trống");
-    if (!payload.teachingLanguage || !payload.teachingLanguage.trim())
-      throw new Error("Teaching language không được để trống");
-    if (!payload.categoryId) throw new Error("categoryId không được để trống");
-    if (!Array.isArray(payload.courseModules) || payload.courseModules.length === 0)
-      throw new Error("Phải có ít nhất 1 module");
+  if (!payload.title?.trim()) throw new Error("Title không được để trống");
+  if (!payload.teachingLanguage?.trim())
+    throw new Error("Teaching language không được để trống");
+  if (!payload.categoryId) throw new Error("categoryId không được để trống");
 
-    payload.courseModules.forEach((mod, mi) => {
-      if (!mod.title || !mod.title.trim())
-        throw new Error(`Module #${mi + 1} thiếu title`);
-      if (!Array.isArray(mod.lessons) || mod.lessons.length === 0)
-        throw new Error(`Module #${mi + 1} phải có ít nhất 1 lesson`);
-      mod.lessons.forEach((lesson, li) => {
-        if (!lesson.title || !lesson.title.trim())
-          throw new Error(
-            `Lesson #${li + 1} của Module #${mi + 1} thiếu title`
-          );
-        if (!Array.isArray(lesson.resources) || lesson.resources.length === 0)
-          throw new Error(
-            `Lesson #${li + 1} của Module #${mi + 1} phải có ít nhất 1 resource`
-          );
-        lesson.resources.forEach((r, ri) => {
-          if (!r.resourceType)
-            throw new Error(
-              `Resource #${ri + 1} của Lesson #${li + 1} thiếu resourceType`
-            );
-          if (!r.resourceUrl || !String(r.resourceUrl).trim())
-            r.resourceUrl = "Content";
-        });
+  if (!Array.isArray(payload.courseModules) || payload.courseModules.length === 0)
+    throw new Error("Phải có ít nhất 1 chương");
+
+  payload.courseModules.forEach((mod, mi) => {
+    if (!mod.title?.trim()) throw new Error(`Chương #${mi + 1} thiếu tựa đề`);
+
+    if (!Array.isArray(mod.lessons) || mod.lessons.length === 0)
+      throw new Error(`Chương #${mi + 1} phải có ít nhất 1 bài học`);
+
+    mod.lessons.forEach((lesson, li) => {
+      if (!lesson.title?.trim())
+        throw new Error(`Bài học #${li + 1} của Chương #${mi + 1} thiếu tựa đề`);
+
+      if (!Array.isArray(lesson.resources) || lesson.resources.length === 0)
+        throw new Error(
+          `Bài học #${li + 1} của Chương #${mi + 1} phải có ít nhất 1 tài nguyên`
+        );
+
+      lesson.resources.forEach((r, ri) => {
+        if (!r.resourceType?.trim()) r.resourceType = "TEXT";
+        if (!r.resourceUrl?.trim() && !r.files?.length) r.resourceUrl = "Content";
       });
     });
-  };
+  });
+};
 
-  // Submit
-  const handleCreateCourse = async (e) => {
-    e.preventDefault();
-    if (!selectedFile) return alert("Vui lòng chọn ảnh đại diện khóa học (cover)");
-    setIsCreating(true);
-    
-    try {
-      const modules = newCourse.courseModules.map((mod, mi) => ({
-        title: mod.title?.trim() || `Module ${mi + 1}`,
-        description: mod.description || "",
-        orderIndex: Number(mod.orderIndex) || mi + 1,
-        canFreeTrial: !!mod.canFreeTrial,
-        lessons: mod.lessons.map((lesson, li) => ({
-          title: lesson.title?.trim() || `Bài học ${li + 1}`,
-          description: lesson.description || "",
-          duration: Number(lesson.duration) || 30,
-          resources: lesson.resources.map((r) => ({
-            resourceType: (r.resourceType || "TEXT").toUpperCase(),
-            resourceUrl: (r.resourceUrl && String(r.resourceUrl).trim()) || "Content",
-          })),
+const handleCreateCourse = async (e) => {
+  e.preventDefault();
+  if (!selectedFile)
+    return alert("Vui lòng chọn ảnh đại diện khóa học (cover)");
+  setIsCreating(true);
+
+  try {
+    const modules = newCourse.courseModules.map((mod, mi) => ({
+      title: mod.title?.trim() || `Module ${mi + 1}`,
+      description: mod.description || "",
+      orderIndex: Number(mod.orderIndex) || mi + 1,
+      canFreeTrial: !!mod.canFreeTrial,
+      lessons: mod.lessons.map((lesson, li) => ({
+        title: lesson.title?.trim() || `Bài học ${li + 1}`,
+        description: lesson.description || "",
+        duration: Number(lesson.duration) || 30,
+        resources: lesson.resources.map((r) => ({
+          resourceType: (r.resourceType || "TEXT").toUpperCase(),
+          resourceUrl: r.resourceUrl?.trim() || "Content",
         })),
-      }));
-
-      const payload = {
-        title: newCourse.title?.trim() || "Khóa học demo",
-        teachingLanguage: newCourse.teachingLanguage || "VN",
-        price: Number(newCourse.price) || 0.01,
-        categoryId: Number(newCourse.categoryId) || 1,
-        description: newCourse.description || "Mô tả khóa học demo",
-        startDate: newCourse.startDate
-          ? new Date(newCourse.startDate).toISOString()
-          : new Date().toISOString(),
-        endDate: newCourse.endDate
-          ? new Date(newCourse.endDate).toISOString()
-          : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-        courseModules: modules,
-      };
-
-      validatePayload(payload);
-
-      const resourceFiles = [];
-      newCourse.courseModules.forEach((mod) =>
-        mod.lessons.forEach((lesson) =>
-          lesson.resources.forEach((r) => {
-            if (r.file instanceof File) resourceFiles.push(r.file);
-          })
-        )
-      );
-
-      console.log("Payload JSON:", JSON.stringify(payload, null, 2));
-      console.log("Cover file:", selectedFile);
-      console.log("Resource files:", resourceFiles);
-
-      const response = await createCourse(payload, selectedFile, resourceFiles);
-      console.log("API response:", response);
-      alert("Tạo khóa học thành công!");
-      setIsCreating(false);
-      handleShowSuccess(); // show popup
-      setShowForm(false);
-      setCurrentStep(1);
-      setSelectedFile(null);
-      setNewCourse({
-        title: "Khóa học demo",
-        teachingLanguage: "Tiếng Việt",
-        price: 0,
-        categoryId: 1,
-        description: "Mô tả khóa học demo",
-        startDate: "",
-        endDate: "",
-        duration: 1,
-        courseModules: [
-          {
-            title: "Module 1",
-            description: "Mô tả module 1",
-            orderIndex: 1,
-            canFreeTrial: false,
-            lessons: [
-              {
-                title: "Bài học 1",
-                description: "Mô tả bài học 1",
-                duration: 30,
-                resources: [{ ...emptyResource() }],
-              },
-            ],
-          },
-        ],
-      });
-    } catch (err) {
-      console.error("❌ Lỗi tạo khóa học:", err);
-      alert(err.message || "Có lỗi khi tạo khóa học");
-    } finally {
-      setIsCreating(false);
-    }
+      })),
+    }));
+    const validCategoryIds = [1, 2, 3, 4, 5];
+    const payload = {
+  title: newCourse.title?.trim() || "Khóa học demo",
+  teachingLanguage: newCourse.teachingLanguage || "VN",
+  price: Number(newCourse.price) || 0.01,
+  categoryId: validCategoryIds.includes(newCourse.categoryId)
+    ? Number(newCourse.categoryId)
+    : null, 
+  description: newCourse.description || "Mô tả khóa học demo",
+  startDate: newCourse.startDate
+    ? new Date(newCourse.startDate).toISOString()
+    : new Date().toISOString(),
+  endDate: newCourse.endDate
+    ? new Date(newCourse.endDate).toISOString()
+    : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+  courseModules: modules,
   };
+  if (!payload.categoryId) {
+    return alert("Vui lòng chọn cấp độ hợp lệ từ N5 → N1");
+  }
+    validatePayload(payload);
+
+    const resourceFiles = [];
+    newCourse.courseModules.forEach((mod) =>
+      mod.lessons.forEach((lesson) =>
+        lesson.resources.forEach((r) => {
+          if (r.files && r.files.length > 0) {
+            resourceFiles.push(...r.files);
+          }
+        })
+      )
+    );
+
+    console.log("Payload JSON:", JSON.stringify(payload, null, 2));
+    console.log("Cover file:", selectedFile);
+    console.log("Resource files:", resourceFiles);
+
+    const response = await createCourse(payload, selectedFile, resourceFiles);
+    console.log("API response:", response);
+
+    alert("🎉 Tạo khóa học thành công!");
+    handleShowSuccess();
+    setShowForm(false);
+    setCurrentStep(1);
+    setSelectedFile(null);
+
+    // Reset form
+    setNewCourse({
+      title: "Khóa học demo",
+      teachingLanguage: "VN",
+      price: 0,
+      categoryId: 1,
+      description: "Mô tả khóa học demo",
+      startDate: "",
+      endDate: "",
+      duration: 1,
+      courseModules: [
+        {
+          title: "Chương 1",
+          description: "Mô tả chương 1",
+          orderIndex: 1,
+          canFreeTrial: false,
+          lessons: [
+            {
+              title: "Bài học 1",
+              description: "Mô tả bài học 1",
+              duration: 30,
+              resources: [{ ...emptyResource() }],
+            },
+          ],
+        },
+      ],
+    });
+  } catch (err) {
+    console.error("❌ Lỗi tạo khóa học:", err);
+    alert(err.message || "Có lỗi khi tạo khóa học");
+  } finally {
+    setIsCreating(false);
+  }
+};
 
   const filteredCourses = courses.filter((course) => {
   const matchSearch = search
@@ -353,23 +364,26 @@ const paginatedCourses = filteredCourses.slice(
   const handleAddToCart = (course) => {
   const cart = JSON.parse(localStorage.getItem("cart")) || [];
 
-  const existing = cart.find((item) => item.courseId === (course.courseId || course.id));
+  const courseId = course.courseId || course.id;
+  const existing = cart.find((item) => item.courseId === courseId);
+
   if (existing) {
-    existing.quantity += 1;
+    handleShowWarning();
   } else {
     cart.push({
-      courseId: course.courseId || course.id,
+      courseId,
       courseName: course.courseName || course.title,
       price: Number(course.price || 0),
       instructor: course.instructor || course.createdBy || "Không rõ",
       quantity: 1,
-      image: course.imagePresignedUrl || course.imageUrl || course.image || "",
+      imageUrl: course.imagePresignedUrl || course.imageUrl || course.image || "",
     });
+
+    localStorage.setItem("cart", JSON.stringify(cart));
+    window.dispatchEvent(new Event("cartUpdated"));
+
+    handleShowSuccess();
   }
-
-  localStorage.setItem("cart", JSON.stringify(cart));
-
-  window.dispatchEvent(new Event("cartUpdated"));
 };
 
 
@@ -377,7 +391,6 @@ const paginatedCourses = filteredCourses.slice(
     e.preventDefault(); 
     console.log("handleNextStep được gọi - currentStep:", currentStep);
     if (currentStep === 1) {
-      // Validate thông tin cơ bản
       if (!newCourse.title.trim()) {
         alert("Vui lòng nhập tên khóa học");
         return;
@@ -398,11 +411,10 @@ const [activeModuleIndex, setActiveModuleIndex] = useState(
   newCourse.courseModules.length > 0 ? 0 : -1
 );
 
-// Hàm xử lý việc mở/đóng chương
 const handleToggleModule = (modIdx) => {
   setActiveModuleIndex(prevIndex => (prevIndex === modIdx ? -1 : modIdx));
 };
-  // Render step content
+
   const renderStepContent = () => {
     switch (currentStep) {
       case 1:
@@ -439,28 +451,33 @@ const handleToggleModule = (modIdx) => {
                     }
                     className="w-full border-2 border-gray-200 px-3 py-2.5 rounded-xl focus:ring-2 focus:ring-[#910c4e] focus:border-[#910c4e] transition-all duration-200 bg-white shadow-sm text-sm"
                   >
-                    <option value="VN">🇻🇳 Tiếng Việt</option>
-                    <option value="JP">🇯🇵 Tiếng Nhật</option>
-                    <option value="EN">🇺🇸 Tiếng Anh</option>
+                    <option value="Tiếng Việt">🇻🇳 Tiếng Việt</option>
+                    <option value="Tiếng Nhật">🇯🇵 Tiếng Nhật</option>
+                    <option value="Tiếng Anh">🇺🇸 Tiếng Anh</option>
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Cấp độ (Level)</label>
-                  <select
-                    value={newCourse.categoryId}
-                    onChange={(e) =>
-                      setNewCourse({ ...newCourse, categoryId: e.target.value })
-                    }
-                    className="w-full border-2 border-gray-200 px-3 py-2.5 rounded-xl focus:ring-2 focus:ring-[#910c4e] focus:border-[#910c4e] transition-all duration-200 bg-white shadow-sm text-sm"
-                  >
-                    <option value="">Chọn cấp độ</option>
-                    <option value="N5">N5 - Sơ cấp</option>
-                    <option value="N4">N4 - Sơ trung cấp</option>
-                    <option value="N3">N3 - Trung cấp</option>
-                    <option value="N2">N2 - Trung cao cấp</option>
-                    <option value="N1">N1 - Cao cấp</option>
-                  </select>
-                </div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Cấp độ (Level)
+                </label>
+                <select
+                  value={newCourse.categoryId || ""}
+                  onChange={(e) => {
+                    const val = e.target.value === "" ? null : Number(e.target.value);
+                    setNewCourse({ ...newCourse, categoryId: val });
+                  }}
+                  className="w-full border-2 border-gray-200 px-3 py-2.5 rounded-xl
+                            focus:ring-2 focus:ring-[#910c4e] focus:border-[#910c4e]
+                            transition-all duration-200 bg-white shadow-sm text-sm"
+                >
+                  <option value="">Chọn cấp độ</option>
+                  <option value={1}>N5 - Sơ cấp</option>
+                  <option value={2}>N4 - Sơ trung cấp</option>
+                  <option value={3}>N3 - Trung cấp</option>
+                  <option value={4}>N2 - Trung cao cấp</option>
+                  <option value={5}>N1 - Cao cấp</option>
+                </select>
+              </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Giá khóa học (VND)</label>
                   <div className="relative">
@@ -694,17 +711,13 @@ const handleToggleModule = (modIdx) => {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
                     </svg>
                     Danh sách chương (Chỉnh sửa thông tin chung)
-                  </h4>
-
-                  {/* Accordion cho Chương (max-height và cuộn) */}
+                  </h4>                
                   <div className="space-y-3 max-h-[500px] overflow-y-auto pr-2">
                     {newCourse.courseModules.map((module, modIdx) => (
-                      <div key={modIdx} className={`border-2 rounded-xl transition-all duration-300 ${modIdx === activeModuleIndex ? 'border-indigo-500 bg-indigo-50 shadow-lg' : 'border-gray-200 bg-gray-50 hover:bg-gray-100'}`}>
-                        
-                        {/* Header Chương (Click để mở/chọn) */}
+                      <div key={modIdx} className={`border-2 rounded-xl transition-all duration-300 ${modIdx === activeModuleIndex ? 'border-indigo-500 bg-indigo-50 shadow-lg' : 'border-gray-200 bg-gray-50 hover:bg-gray-100'}`}>                       
                         <div 
                           className="p-4 cursor-pointer flex items-center justify-between"
-                          onClick={() => handleToggleModule(modIdx)} // Sử dụng hàm handleToggleModule
+                          onClick={() => handleToggleModule(modIdx)} 
                         >
                           <div className="flex items-center gap-3">
                             <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm transition-colors ${modIdx === activeModuleIndex ? 'bg-indigo-700' : 'bg-indigo-500'}`}>
@@ -719,17 +732,16 @@ const handleToggleModule = (modIdx) => {
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                             </svg>
                             {module.lessons.length} bài học
-                            {/* Icon mở/đóng */}
+
                             <svg className={`w-5 h-5 ml-2 transition-transform duration-300 ${modIdx === activeModuleIndex ? 'transform rotate-180 text-indigo-700' : 'text-gray-500'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                             </svg>
                           </div>
                         </div>
                         
-                        {/* Nội dung Chương (chỉ hiển thị khi activeModuleIndex khớp) */}
                         {modIdx === activeModuleIndex && (
                           <div className="p-4 pt-0 border-t border-indigo-200 space-y-3">
-                            {/* Input Tên Chương */}
+
                             <input
                               type="text"
                               placeholder={`Tên chương ${modIdx + 1}`}
@@ -741,8 +753,7 @@ const handleToggleModule = (modIdx) => {
                               }}
                               className="w-full border border-gray-300 px-3 py-2 rounded-lg focus:ring-2 focus:ring-[#910c4e] focus:border-[#910c4e] transition-all duration-200 text-sm"
                             />
-                            
-                            {/* Textarea Mô Tả Chương */}
+                          
                             <textarea
                               placeholder={`Mô tả chương ${modIdx + 1}...`}
                               value={module.description || ''}
@@ -754,8 +765,6 @@ const handleToggleModule = (modIdx) => {
                               rows={2}
                               className="w-full border border-gray-300 px-3 py-2 rounded-lg focus:ring-2 focus:ring-[#910c4e] focus:border-[#910c4e] transition-all duration-200 resize-none text-sm"
                             />
-                            
-                            {/* Cho phép dùng thử + Thêm bài (Dễ thêm bài học) */}
                             <div className="flex items-center justify-between">
                               <div className="flex items-center gap-2">
                                 <input
@@ -795,9 +804,7 @@ const handleToggleModule = (modIdx) => {
                         <p className="text-sm">Chưa có chương nào.</p>
                       </div>
                     )}
-                  </div>
-                  
-                  {/* Nút thêm chương rõ ràng */}
+                  </div>                 
                   <button
                     type="button"
                     onClick={handleAddModule}
@@ -810,8 +817,6 @@ const handleToggleModule = (modIdx) => {
                   </button>
                 </div>
               </div>
-              
-              {/* Cột phải - Chi tiết bài học (Chỉ cho chương đang mở/chọn) */}
               <div className="space-y-6">
                 <div className="bg-white p-6 rounded-2xl border-2 border-gray-200 shadow-xl">
                   <h4 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
@@ -838,8 +843,7 @@ const handleToggleModule = (modIdx) => {
                             {/* Nút Xóa Bài Học (Tùy chọn) */}
                             {/* <button type="button" onClick={() => handleRemoveLesson(activeModuleIndex, lesIdx)} className="text-red-500 hover:text-red-700 text-xs">Xóa</button> */}
                           </div>
-                          
-                          {/* Tên bài học */}
+
                           <input
                             type="text"
                             placeholder={`Tên bài học ${lesIdx + 1}`}
@@ -852,7 +856,6 @@ const handleToggleModule = (modIdx) => {
                             className="w-full border border-gray-300 px-2 py-1.5 rounded text-sm mb-2 focus:ring-1 focus:ring-purple-500 focus:border-purple-500"
                           />
                           
-                          {/* Mô tả bài học */}
                           <textarea
                             placeholder="Mô tả nội dung bài học"
                             value={lesson.description}
@@ -865,7 +868,6 @@ const handleToggleModule = (modIdx) => {
                             className="w-full border border-gray-300 px-2 py-1.5 rounded text-sm mb-2 resize-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500"
                           />
                           
-                          {/* Thời lượng */}
                           <div className="flex items-center gap-2 mb-3">
                             <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -909,7 +911,7 @@ const handleToggleModule = (modIdx) => {
                                     ✕
                                 </button>
 
-                                {/* Loại tài nguyên */}
+   
                                 <select
                                   value={resource.resourceType || "TEXT"}
                                   onChange={(e) =>
@@ -922,9 +924,7 @@ const handleToggleModule = (modIdx) => {
                                   <option value="PDF"> PDF</option>
                                   <option value="WORD"> Word</option>
                                   <option value="QUIZ"> Bài kiểm tra</option>
-                                </select>
-                                
-                                {/* Nội dung/Tải tệp */}
+                                </select>                              
                                 {resource.resourceType === 'TEXT' ? (
                                     <textarea
                                         placeholder="Nhập nội dung bài học..."
@@ -937,15 +937,20 @@ const handleToggleModule = (modIdx) => {
                                     />
                                 ) : resource.resourceType === 'VIDEO' ? (
                                     <input
-                                        type="url"
-                                        placeholder="Dán link video (YouTube, Vimeo...)"
-                                        value={resource.resourceUrl || ""}
-                                        onChange={(e) =>
-                                          handleResourceFieldChange(activeModuleIndex, lesIdx, resIdx, "resourceUrl", e.target.value)
-                                        }
-                                        className="w-full border border-gray-300 px-2 py-1 rounded text-xs focus:ring-1 focus:ring-purple-500 focus:border-purple-500"
+                                      type="file"
+                                      accept="video/*" 
+                                      onChange={(e) =>
+                                        handleResourceFieldChange(
+                                          activeModuleIndex,
+                                          lesIdx,
+                                          resIdx,
+                                          "resourceFile",
+                                          e.target.files[0]
+                                        )
+                                      }
+                                      className="w-full border border-gray-300 px-2 py-1 rounded text-xs focus:ring-1 focus:ring-purple-500 focus:border-purple-500"
                                     />
-                                ) : (
+                                  ) : (
                                   <div className="border border-dashed border-gray-300 p-2 rounded text-center">
                                   <input
                                     type="file"
@@ -967,7 +972,7 @@ const handleToggleModule = (modIdx) => {
                                   >
                                     {resource.files && resource.files.length > 0 ? (
                                       <div>
-                                        <span className="text-green-600">✅ Đã tải {resource.files.length} tệp:</span>
+                                        <span className="text-green-600"> Đã tải {resource.files.length} tệp:</span>
                                         <ul className="text-left text-xs mt-1">
                                           {resource.files.map((f, idx) => (
                                             <li key={idx}>{f.name}</li>
@@ -1006,7 +1011,7 @@ const handleToggleModule = (modIdx) => {
   };
   return (
     <div className="flex flex-col min-h-screen bg-gray-50">
-      {/* Banner */}
+
       <div className="relative h-64 w-full">
         <img
           src="img/jp.jpg"
@@ -1020,17 +1025,15 @@ const handleToggleModule = (modIdx) => {
         </div>
       </div>
 
-      {/* Course creation button */}
       {user.role !== "student" && (
   <div className="container mx-auto px-6 py-6 flex justify-end">
     <button
       onClick={() => setShowForm(true)}
       className="group relative bg-gradient-to-r from-[#910c4e] to-[#b91c5a] text-white px-6 py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 ease-in-out overflow-hidden"
     >
-      {/* Shimmer effect */}
+
       <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -skew-x-12 translate-x-[-200%] group-hover:translate-x-[200%] transition-transform duration-1000 ease-out"></div>
       
-      {/* Icon and text */}
       <div className="relative flex items-center gap-2">
         <svg 
           className="w-5 h-5 transition-transform duration-300 group-hover:rotate-180" 
@@ -1043,20 +1046,18 @@ const handleToggleModule = (modIdx) => {
         <span className="tracking-wide">Tạo khóa học mới</span>
       </div>
       
-      {/* Glow effect */}
+
       <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-[#910c4e] to-[#b91c5a] opacity-0 group-hover:opacity-50 blur-lg transition-opacity duration-300"></div>
     </button>
   </div>
 )}
 
-      {/* Course creation form */}
     {showForm && (
   <div className="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
     <form
       onSubmit={handleCreateCourse}
       className="bg-white p-6 rounded-3xl shadow-2xl w-full max-w-6xl max-h-[90vh] overflow-auto border border-gray-100"
     >
-      {/* Header sticky */}
       <div className="sticky top-0 bg-white z-10 pb-4 mb-6 border-b-2 border-gray-100">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-4">
@@ -1093,7 +1094,6 @@ const handleToggleModule = (modIdx) => {
           </button>
         </div>
 
-        {/* Step indicator */}
         <div className="flex items-center justify-center space-x-8">
           {[1, 2].map((step) => (
             <div key={step} className="flex items-center">
@@ -1121,15 +1121,12 @@ const handleToggleModule = (modIdx) => {
         </div>
       </div>
 
-      {/* Step content */}
       <div className="mb-6">
         {renderStepContent() || <div className="text-gray-400 text-center py-4">Chưa có nội dung cho bước này</div>}
       </div>
 
-      {/* Navigation buttons */}
       <div className="sticky bottom-0 bg-gradient-to-t from-white via-white to-transparent pt-6 pb-2">
         <div className="flex justify-between items-center">
-          {/* Previous */}
           <button
             type="button"
             onClick={handlePrevStep}
@@ -1240,11 +1237,10 @@ const handleToggleModule = (modIdx) => {
               </svg>
             </div>
             <h2 className="text-2xl font-bold bg-gradient-to-r from-[#910c4e] to-[#b91c5a] bg-clip-text text-transparent">
-              Bộ Lọc Khóa Học
+              Bộ Lọc 
             </h2>
           </div>
 
-          {/* Tìm kiếm */}
           <div className="mb-6">
             <label className="block text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
               <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1266,7 +1262,6 @@ const handleToggleModule = (modIdx) => {
             </div>
           </div>
 
-          {/* Ngôn ngữ */}
           <div className="mb-6">
             <label className="block text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
               <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1291,7 +1286,6 @@ const handleToggleModule = (modIdx) => {
             </div>
           </div>
 
-          {/* Mức giá */}
           <div className="mb-6">
             <label className="block text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
               <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1316,7 +1310,6 @@ const handleToggleModule = (modIdx) => {
             </div>
           </div>
 
-          {/* Khóa học miễn phí */}
           <div className="mb-6">
             <label className="block text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
               <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1341,7 +1334,6 @@ const handleToggleModule = (modIdx) => {
             </button>
           </div>
 
-          {/* Reset button */}
           <div className="pt-4 border-t border-gray-200">
             <button
               onClick={() => {
@@ -1360,7 +1352,6 @@ const handleToggleModule = (modIdx) => {
           </div>
         </aside>
 
-        {/* Main content */}
         <main className="flex-1">
   <h2 className="text-2xl font-bold text-gray-800 mb-8">
     Danh sách Khóa học
@@ -1379,36 +1370,27 @@ const handleToggleModule = (modIdx) => {
             onClick={() => navigate(`/courses/${course.id}`)}
             className="cursor-pointer bg-white rounded-2xl shadow-md overflow-hidden hover:shadow-xl hover:scale-[1.02] transition-transform min-h-[350px] flex flex-col"
           >
-            {/* Ảnh khóa học */}
             <img
               src={course.imagePresignedUrl || "img/default-course.jpg"}
               alt={course.title}
               className="w-full h-44 object-cover"
             />
 
-            {/* Tên khóa học */}
             <h3 className="font-bold text-lg mb-2 text-[#910c4e] truncate w-full overflow-hidden whitespace-nowrap px-3 mt-3">
               {course.title}
             </h3>
-
-            {/* Ngôn ngữ giảng dạy */}
             <p className="text-sm text-gray-600 mb-1 px-3">
               Ngôn ngữ giảng dạy: {course.teachingLanguage || course.teaching_language}
             </p>
 
-            {/* Giá khóa học */}
             <p className="text-lg font-semibold text-[#910c4e] mb-2 px-3">
               {course.price === 0
                 ? "Miễn phí"
                 : `${course.price.toLocaleString("vi-VN")} Đ`}
             </p>
-
-            {/* Mô tả khóa học */}
             <p className="text-gray-700 text-sm flex-1 px-3 mb-3 line-clamp-2">
               {course.description}
             </p>
-
-            {/* Buttons */}
             <div className="flex gap-3 px-3 pb-3 mt-auto">
               <button
                 type="button"
@@ -1434,8 +1416,21 @@ const handleToggleModule = (modIdx) => {
             </div>
           </div>
         ))}
+        {showSuccess && (
+          <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 
+                          bg-green-600 text-white px-10 py-6 rounded-xl shadow-2xl 
+                          text-2xl font-bold animate-fade-in-out z-[9999] scale-105">
+            🎉 Đã thêm khóa học vào giỏ hàng!
+          </div>
+        )}
 
-        {/* Placeholder để giữ layout 3 cột */}
+        {showWarning && (
+          <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 
+                          bg-yellow-500 text-white px-10 py-6 rounded-xl shadow-2xl 
+                          text-2xl font-bold animate-fade-in-out z-[9999] scale-105">
+            ⚠️ Khóa học đã có trong giỏ hàng!
+          </div>
+        )}
         {Array.from({ length: (3 - (filteredCourses.length % 3)) % 3 }).map(
           (_, idx) => (
             <div
@@ -1447,7 +1442,6 @@ const handleToggleModule = (modIdx) => {
       </>
     ) : (
       <>
-        {/* Khi không có khóa học */}
         <div className="col-span-3 flex justify-center items-center text-gray-600 text-lg min-h-[350px] border rounded-2xl bg-white shadow">
           Không tìm thấy khóa học nào.
         </div>
@@ -1456,9 +1450,6 @@ const handleToggleModule = (modIdx) => {
       </>
     )}
   </div>
-
-
-      {/* Pagination */}
       <div className="flex justify-center mt-8 gap-4">
         <button
           disabled={pageNo === 0}
@@ -1481,6 +1472,7 @@ const handleToggleModule = (modIdx) => {
       </div>
 
       {/* Footer */}
+      <div className="w-full border-t-4 border-[#910c4e]/60 mb-4"></div>
       <Footer />
     </div>
   );

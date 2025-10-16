@@ -18,6 +18,10 @@ import {
   XMarkIcon,
   ShoppingCartIcon,
   BellIcon,
+  ChevronDownIcon,
+  BookOpenIcon,
+  UserIcon,
+  ArrowRightOnRectangleIcon,
 } from "@heroicons/react/24/outline";
 
 export function Navbar({ brandName, routes }) {
@@ -172,7 +176,7 @@ export function Navbar({ brandName, routes }) {
                     <span className="font-semibold text-white">
                       {user.username}
                     </span>
-                    <i className="fa-solid fa-chevron-down text-xs opacity-70"></i>
+                    <ChevronDownIcon className="h-4 w-4 opacity-70 text-white" />
                   </div>
                 </MenuHandler>
                 <MenuList className="p-2 bg-white shadow-xl border border-gray-100 rounded-xl w-60">
@@ -189,7 +193,7 @@ export function Navbar({ brandName, routes }) {
                     onClick={() => navigate("/personal-course")}
                     className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-pink-50 transition"
                   >
-                    <i className="fa-solid fa-book-open text-pink-600"></i>
+                    <BookOpenIcon className="w-4 h-4 text-pink-600" />
                     <span className="font-medium text-gray-700">
                       Khóa học của tôi
                     </span>
@@ -199,7 +203,7 @@ export function Navbar({ brandName, routes }) {
                     onClick={() => navigate("/profile")}
                     className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-pink-50 transition"
                   >
-                    <i className="fa-solid fa-user text-pink-600"></i>
+                    <UserIcon className="w-4 h-4 text-pink-600" />
                     <span className="font-medium text-gray-700">
                       Hồ sơ cá nhân
                     </span>
@@ -211,7 +215,7 @@ export function Navbar({ brandName, routes }) {
                     onClick={handleLogout}
                     className="flex items-center gap-2 px-3 py-2 rounded-lg text-red-500 hover:bg-red-50 transition"
                   >
-                    <i className="fa-solid fa-right-from-bracket"></i>
+                    <ArrowRightOnRectangleIcon className="w-4 h-4" />
                     <span className="font-medium">Đăng xuất</span>
                   </MenuItem>
                 </MenuList>

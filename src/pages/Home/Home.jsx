@@ -123,7 +123,6 @@ export default function Home() {
 
   return (
     <div ref={containerRef} className="overflow-hidden">
-      {/* HERO SECTION */}
       <section id="section-0" className="h-screen flex items-center justify-center text-center relative">
         <div className="absolute inset-0 bg-[url('/img/japan-bg.jpg')] bg-cover bg-center" />
         <div className="absolute inset-0 rounded-3xl" style={{backgroundColor: '#7d1b4e', opacity: 0.6}} />
@@ -138,15 +137,12 @@ export default function Home() {
             Đăng ký ngay
           </Button>
         </div>
-        {/* Scroll indicator */}
         <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 text-white animate-bounce">
           <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
           </svg>
         </div>
       </section>
-
-      {/* KHÓA HỌC TIÊU BIỂU */}
       <section id="section-1" className="h-screen flex items-center justify-center bg-white">
         <div className="container mx-auto px-6 text-center">
           <Typography variant="h2" className="font-bold mb-12 text-2xl lg:text-4xl">
@@ -202,8 +198,6 @@ export default function Home() {
           )}
         </div>
       </section>
-
-      {/* GIÁO VIÊN TIÊU BIỂU */}
       <section id="section-2" className="h-screen flex items-center justify-center bg-gray-50">
         <div className="container mx-auto px-8">
           <Typography variant="h2" className="text-center font-bold mb-12 text-2xl lg:text-4xl">
@@ -243,10 +237,7 @@ export default function Home() {
           </Swiper>
         </div>
       </section>
-
-      {/* FEEDBACK HỌC VIÊN */}
       <section id="section-3" className="h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-indigo-50 relative overflow-hidden">
-        {/* Background decorative elements */}
         <div className="absolute top-0 left-0 w-96 h-96 bg-blue-100 rounded-full mix-blend-multiply filter blur-2xl opacity-30 animate-pulse"></div>
         <div className="absolute bottom-0 right-0 w-96 h-96 bg-indigo-100 rounded-full mix-blend-multiply filter blur-2xl opacity-30 animate-pulse delay-1000"></div>
         
@@ -274,21 +265,17 @@ export default function Home() {
                 </div>
                 
                 <div className="relative z-10">
-                  {/* Rating stars */}
                   <div className="flex items-center gap-1 mb-6">
                     {[...Array(t.rating)].map((_, i) => (
                       <svg key={i} className="w-6 h-6 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
                         <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                       </svg>
                     ))}
-                  </div>
-                  
-                  {/* Testimonial text */}
+                  </div>           
                   <Typography className="text-gray-700 mb-6 leading-relaxed italic">
                     "{t.text}"
                   </Typography>
                   
-                  {/* Author info */}
                   <div className="flex items-center gap-4">
                     <img 
                       src={t.img} 
@@ -310,8 +297,6 @@ export default function Home() {
           </div>
         </div>
       </section>
-
-      {/* FORM LIÊN HỆ */}
       <section id="section-4" className="h-screen flex items-center justify-center bg-gray-100">
         <div className="container mx-auto px-6 text-center">
           <Typography variant="h2" className="font-bold mb-12 text-2xl lg:text-3xl">
@@ -332,7 +317,7 @@ export default function Home() {
       </section>
 
       {/* FOOTER */}
-      <section id="section-5" className="h-screen flex items-center justify-center">
+      <section id="section-5" className="min-h-screen flex flex-col">
         <Footer />
       </section>
     </div>
