@@ -112,6 +112,21 @@ function ResourceViewer({ resource }) {
     </div>
   );
 }
+const isVideoResource = (r) => {
+  if (!r) return false;
+  const t = String(r.type || r.resourceType || "").toLowerCase();
+  if (t.includes("video")) return true;
+  const url = String(r.resourceUrl || "");
+  const ext = url.split("?")[0].split(".").pop().toLowerCase();
+  return ["mp4", "webm", "ogg"].includes(ext);
+};
+
+const sortResourcesVideoFirst = (resources = []) =>
+  [...resources].sort((a, b) => {
+    const aVid = isVideoResource(a) ? 1 : 0;
+    const bVid = isVideoResource(b) ? 1 : 0;
+    return bVid - aVid; 
+  });
 
 export default function TryCourse() {
   const { id: courseId } = useParams();
@@ -151,6 +166,16 @@ export default function TryCourse() {
         setLessons((prev) => ({ ...prev, [module.id]: [] }));
       }
     }
+  };
+
+  const handleSelectLesson = (lesson) => {
+    if (!lesson) return setSelectedLesson(null);
+    const sorted = {
+      ...lesson,
+      resources: sortResourcesVideoFirst(lesson.resources || []),
+    };
+    setSelectedLesson(sorted);
+    if (lesson.moduleId) setExpandedModule(lesson.moduleId);
   };
 
   return (
@@ -218,7 +243,7 @@ export default function TryCourse() {
                             ? "border-pink-500 bg-pink-50 text-pink-800"
                             : "border-transparent hover:bg-gray-100 hover:border-gray-300"
                         }`}
-                        onClick={() => setSelectedLesson(lesson)}
+                        onClick={() => handleSelectLesson(lesson)}
                       >
                         <div className="flex items-center space-x-2">
                           <PlayIcon
@@ -276,9 +301,9 @@ export default function TryCourse() {
                 <div className="space-y-6">
                   {[...(selectedLesson.resources || [])]
                     .sort((a, b) => {
-                      if (a.type === "video" && b.type !== "video") return -1;
-                      if (a.type !== "video" && b.type === "video") return 1;
-                      return 0;
+                      const aVid = isVideoResource(a) ? 1 : 0;
+                      const bVid = isVideoResource(b) ? 1 : 0;
+                      return bVid - aVid;
                     })
                     .map((r) => (
                       <div
