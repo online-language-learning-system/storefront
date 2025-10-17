@@ -7,6 +7,7 @@ import Payment from "@/pages/Payment/Payment";
 import TryCourse from "@/pages/Courses/TryCourse";
 import CourseDetail from "./pages/Courses/CourseDetail";
 import PersonalCourse from "@/pages/Courses/PersonalCourse";
+import MyCourse from "@/pages/Courses/MyCourse";
 
 export const routes = [
   {
