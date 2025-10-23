@@ -51,8 +51,6 @@ export async function getCourseModules(id) {
   }
   return res.json();
 }
-
-
 export async function getModuleLessons(id) {
   const res = await fetch(`${BASE_URL}/storefront/${id}/lessons`, {
     headers: {
@@ -66,8 +64,6 @@ export async function getModuleLessons(id) {
   }
   return res.json();
 }
-// ======= BACKOFFICE =======
-
 export async function createCourse(courseData, coverFile, resourceFiles = []) {
   if (!coverFile) throw new Error("Ảnh khóa học bắt buộc");
   const payload = {

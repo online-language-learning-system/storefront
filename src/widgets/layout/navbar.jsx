@@ -126,7 +126,12 @@ export function Navbar({ brandName, routes }) {
     <MTNavbar color="transparent" className="p-3">
       <div className="container mx-auto flex items-center justify-between text-white max-w-7xl">
         {/* Logo */}
-        <Link to="/home">
+        <Link to="/home" className="flex items-center">
+          <img 
+            src="/logo/logo_Jhajime.png" 
+            alt="J-Hajime Logo" 
+            className="h-16 w-16 mr-2"
+          />
           <Typography className="mr-4 ml-2 cursor-pointer py-1.5 font-bold text-lg">
             {brandName}
           </Typography>

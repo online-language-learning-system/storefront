@@ -1,4 +1,4 @@
-    import React, { useState } from "react";
+import React, { useState } from "react";
     import Footer from "@/components/Footer";
     import { Progress } from "@material-tailwind/react";
     import { BookOpenIcon } from "@heroicons/react/24/solid";
@@ -125,7 +125,7 @@ const PersonalCourse = () => {
                   </div>
                   <Progress
                     value={course.progress}
-                    color={course.progress === 100 ? "green" : "pink"}
+                    color="green"
                     className="h-2 w-full"
                   />
                 </div>

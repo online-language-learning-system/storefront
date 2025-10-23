@@ -47,7 +47,7 @@ export const routes = [
   },
   {
     name: "Cộng đồng",
-    href: "https://www.material-tailwind.com/docs/react/installation",
+    href: "https://www.facebook.com/groups/2784175251971354",
     target: "_blank",
     element: "",
   },

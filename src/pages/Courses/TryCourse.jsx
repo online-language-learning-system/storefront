@@ -269,13 +269,12 @@ export default function TryCourse() {
             {!selectedLesson ? (
               <div className="h-full flex flex-col items-center justify-center text-gray-500 min-h-[500px] bg-white rounded-2xl shadow-sm border border-gray-200">
                 <div className="bg-gradient-to-br from-pink-100 to-purple-100 p-8 rounded-full mb-6">
-                  <PlayIconSolid className="h-16 w-16 text-pink-500" />
                 </div>
                 <h3 className="text-2xl font-bold text-gray-800 mb-2">
-                  Ready to Learn?
+                  Bạn đã sẵn sàng để học?
                 </h3>
                 <p className="text-lg text-gray-600">
-                  Select a lesson to start learning
+                  Chọn một bài học để bắt đầu học
                 </p>
               </div>
             ) : (

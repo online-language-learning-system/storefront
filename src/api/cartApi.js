@@ -7,14 +7,12 @@
     return token ? { Authorization: `Bearer ${token}` } : {};
   }
 
-
   export async function getCart() {
     const headers = getAuthHeaders();
     if (!headers.Authorization) {
 
       return { items: [] };
     }
-
     const res = await fetch(`${BASE_URL}/storefront/cart/view`, {
       headers: {
         Accept: "application/json",

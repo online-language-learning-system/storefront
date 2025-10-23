@@ -16,14 +16,11 @@ import "swiper/css";
 import "swiper/css/navigation";
 import "swiper/css/pagination";
 
-// ==== API SERVICE ==== //
-
-// ==== DỮ LIỆU TĨNH ==== //
 const teachersData = [
   { name: "Nguyễn Lan", position: "Giảng viên JLPT N1", img: "/img/team-2.jpg", degree: "Thạc sĩ Ngôn ngữ Nhật", rating: "4.9" },
   { name: "Trần Minh", position: "Chuyên gia JLPT N2", img: "/img/team-3.jpg", degree: "Cử nhân Nhật Bản học", rating: "4.8" },
-  { name: "Lê Hương", position: "Giáo viên JLPT N3", img: "/img/team-4.jpg", degree: "Thạc sĩ Giáo dục", rating: "4.7" },
-  { name: "Phạm Tuấn", position: "Giảng viên JLPT N5, N4", img: "/img/team-5.jpg", degree: "Cử nhân Ngôn ngữ Nhật", rating: "4.6" },
+  { name: "Lê Hương", position: "Giáo viên JLPT N3", img: "/img/team-2.jpg", degree: "Thạc sĩ Giáo dục", rating: "4.7" },
+  { name: "Phạm Tuấn", position: "Giảng viên JLPT N5, N4", img: "/img/team-3.jpg", degree: "Cử nhân Ngôn ngữ Nhật", rating: "4.6" },
   { name: "Mai Anh", position: "Giáo viên JLPT N1", img: "/img/team-1.jpg", degree: "Tiến sĩ Nhật Bản học", rating: "5.0" },
 ];
 
@@ -52,7 +49,7 @@ const testimonialsData = [
   { 
     name: "Thu Hà", 
     text: "Phương pháp giảng dạy hiện đại, tài liệu phong phú. Đặc biệt là các hoạt động thực hành rất thú vị!", 
-    img: "/img/team-4.jpg",
+    img: "/img/team-3.jpg",
     rating: 5,
     course: "Khóa N3"
   },
@@ -79,7 +76,6 @@ export default function Home() {
   fetchCourses();
 }, []);
 
-  // Scroll snap behavior
   useEffect(() => {
     let isScrolling = false;
     
@@ -121,22 +117,45 @@ export default function Home() {
     };
   }, [currentSection]);
 
-  return (
-    <div ref={containerRef} className="overflow-hidden">
-      <section id="section-0" className="h-screen flex items-center justify-center text-center relative">
-        <div className="absolute inset-0 bg-[url('/img/japan-bg.jpg')] bg-cover bg-center" />
-        <div className="absolute inset-0 rounded-3xl" style={{backgroundColor: '#7d1b4e', opacity: 0.6}} />
-        <div className="relative z-10 px-6 transform transition-all duration-1000">
-          <Typography variant="h1" color="white" className="mb-6 font-black text-3xl lg:text-5xl">
-            Học tiếng Nhật dễ dàng cùng J-Hajime
-          </Typography>
-          <Typography color="white" className="mb-8 opacity-90 text-lg lg:text-xl max-w-4xl mx-auto">
-            Từ N5 đến N1 – Lộ trình rõ ràng, giáo viên tận tâm, học để thi và đi Nhật!
-          </Typography>
-          <Button size="lg" color="red" className="rounded-3xl text-lg px-8 py-4 hover:scale-105 transition-transform">
-            Đăng ký ngay
-          </Button>
-        </div>
+   return (
+  <div ref={containerRef} className="overflow-hidden">
+    <section
+      id="section-0"
+      className="h-screen flex items-center justify-center text-center relative"
+    >
+      <video
+        autoPlay
+        loop
+        muted
+        playsInline
+        className="absolute inset-0 w-full h-full object-cover"
+      >
+        <source src="/videos/output_free.mp4" type="video/mp4" />
+        Trình duyệt của bạn không hỗ trợ video nền.
+      </video>
+      <div className="relative z-10 px-6 transform transition-all duration-1000">
+        <Typography
+          variant="h1"
+          color="white"
+          className="mb-6 font-black text-3xl lg:text-5xl"
+        >
+          Học tiếng Nhật dễ dàng cùng J-Hajime
+        </Typography>
+        <Typography
+          color="white"
+          className="mb-8 opacity-90 text-lg lg:text-xl max-w-4xl mx-auto"
+        >
+          Từ N5 đến N1 – Lộ trình rõ ràng, giáo viên tận tâm, học để thi và đi
+          Nhật!
+        </Typography>
+        <Button
+          size="lg"
+          color="red"
+          className="rounded-3xl text-lg px-8 py-4 hover:scale-105 transition-transform"
+        >
+          Đăng ký ngay
+        </Button>
+      </div>
         <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 text-white animate-bounce">
           <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
@@ -257,7 +276,6 @@ export default function Home() {
                 key={t.name} 
                 className="group relative p-8 shadow-2xl hover:shadow-3xl rounded-3xl bg-white/90 backdrop-blur-sm border border-white/20 transition-all duration-500 hover:-translate-y-2 hover:scale-[1.02] overflow-hidden"
               >
-                {/* Quote icon */}
                 <div className="absolute top-6 right-6 text-blue-100 group-hover:text-blue-200 transition-colors duration-300">
                   <svg className="w-10 h-10" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-3.996 3.638-3.996 5.849h4v10h-10z"/>
@@ -315,8 +333,6 @@ export default function Home() {
           </form>
         </div>
       </section>
-
-      {/* FOOTER */}
       <section id="section-5" className="min-h-screen flex flex-col">
         <Footer />
       </section>
