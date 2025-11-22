@@ -1,30 +1,62 @@
 const BASE_URL = "http://localhost:8000/api/course-service";
 
-function getAuthHeaders() {
-  const token = localStorage.getItem("token");
-  return token ? { Authorization: `Bearer ${token}` } : {};
+// read token from param or localStorage (support both keys)
+function getAuthHeaders(token) {
+  const t = token || localStorage.getItem("accessToken") || localStorage.getItem("token");
+  return t ? { Authorization: `Bearer ${t}` } : {};
 }
 
-export async function getAllCourses() {
-  const res = await fetch(`${BASE_URL}/storefront/courses/all`);
-  if (!res.ok) throw new Error("Lỗi khi lấy tất cả khóa học");
-  return res.json();
+// safe JWT payload parse (returns object or null)
+export function getTokenClaims(token) {
+  try {
+    const t = token || localStorage.getItem("accessToken") || localStorage.getItem("token");
+    if (!t) return null;
+    const parts = t.split(".");
+    if (parts.length < 2) return null;
+    const payload = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+    const json = decodeURIComponent(
+      atob(payload)
+        .split("")
+        .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
+        .join("")
+    );
+    return JSON.parse(json);
+  } catch (e) {
+    console.warn("getTokenClaims: failed to decode token", e);
+    return null;
+  }
 }
-export async function getCourseDetail(id) {
-  const res = await fetch(`${BASE_URL}/storefront/${id}/detail`, {
-    headers: getAuthHeaders(),
+
+export async function getAllCourses(token) {
+  const res = await fetch(`${BASE_URL}/storefront/courses/all`, {
+    headers: {
+      Accept: "application/json",
+      ...getAuthHeaders(token),
+    },
   });
-  if (!res.ok) throw new Error("Lỗi khi lấy chi tiết khóa học");
+  if (!res.ok) {
+    const txt = await res.text().catch(() => res.statusText);
+    throw new Error(txt || "Lỗi khi lấy tất cả khóa học");
+  }
   return res.json();
 }
-export async function searchCourses({
-  pageNo = 0,
-  pageSize = 9,
-  courseTitle = "",
-  categoryId,
-  startPrice,
-  endPrice,
-}) {
+
+export async function getCourseDetail(id, token) {
+  const res = await fetch(`${BASE_URL}/storefront/${id}/detail`, {
+    headers: {
+      Accept: "application/json",
+      ...getAuthHeaders(token),
+    },
+  });
+  if (!res.ok) {
+    const txt = await res.text().catch(() => res.statusText);
+    throw new Error(txt || "Lỗi khi lấy chi tiết khóa học");
+  }
+  return res.json();
+}
+
+// other functions keep using getAuthHeaders(token) similarly
+export async function searchCourses({ pageNo = 0, pageSize = 9, courseTitle = "", categoryId, startPrice, endPrice, token } = {}) {
   const params = new URLSearchParams();
   params.append("pageNo", pageNo);
   params.append("pageSize", pageSize);
@@ -33,16 +65,24 @@ export async function searchCourses({
   if (startPrice != null) params.append("startPrice", startPrice);
   if (endPrice != null) params.append("endPrice", endPrice);
 
-  const res = await fetch(`${BASE_URL}/storefront/courses?${params.toString()}`);
-  if (!res.ok) throw new Error("Lỗi khi tìm kiếm khóa học");
+  const res = await fetch(`${BASE_URL}/storefront/courses?${params.toString()}`, {
+    headers: {
+      Accept: "application/json",
+      ...getAuthHeaders(token),
+    },
+  });
+  if (!res.ok) {
+    const txt = await res.text().catch(() => res.statusText);
+    throw new Error(txt || "Lỗi khi tìm kiếm khóa học");
+  }
   return res.json();
 }
 
-export async function getCourseModules(id) {
+export async function getCourseModules(id, token) {
   const res = await fetch(`${BASE_URL}/storefront/${id}/modules`, {
     headers: {
       Accept: "application/json",
-      ...getAuthHeaders(),
+      ...getAuthHeaders(token),
     },
   });
   if (!res.ok) {
@@ -51,11 +91,11 @@ export async function getCourseModules(id) {
   }
   return res.json();
 }
-export async function getModuleLessons(id) {
+export async function getModuleLessons(id, token) {
   const res = await fetch(`${BASE_URL}/storefront/${id}/lessons`, {
     headers: {
       Accept: "application/json",
-      ...getAuthHeaders(),
+      ...getAuthHeaders(token),
     },
   });
   if (!res.ok) {
@@ -64,7 +104,9 @@ export async function getModuleLessons(id) {
   }
   return res.json();
 }
-export async function createCourse(courseData, coverFile, resourceFiles = []) {
+
+// createCourse unchanged, but ensure it uses getAuthHeaders(token) if you pass token
+export async function createCourse(courseData, coverFile, resourceFiles = [], token) {
   if (!coverFile) throw new Error("Ảnh khóa học bắt buộc");
   const payload = {
     ...courseData,
@@ -79,32 +121,17 @@ export async function createCourse(courseData, coverFile, resourceFiles = []) {
     new Blob([JSON.stringify(payload)], { type: "application/json;charset=UTF-8" })
   );
   fd.append("courseImageFile", coverFile);
-  const realFiles = Array.isArray(resourceFiles) ? resourceFiles.filter(f => f instanceof File) : [];
-  if (realFiles.length === 0) {
-    const dummy = new File([""], ".empty", { type: "application/octet-stream" });
-    fd.append("resourceFiles", dummy);
-  } else {
-    realFiles.forEach((file) => {
-      fd.append("resourceFiles", file);
-    });
-  }
-  console.log("== createCourse: about to send multipart/form-data ==");
-  console.log("Headers (auth only):", getAuthHeaders(true));
-  for (const [k, v] of fd.entries()) {
-    if (v instanceof File) console.log(k, "=> File:", v.name, v.type, v.size);
-    else if (v instanceof Blob) {
-      try {
-        v.text().then(txt => console.log(k, "=> Blob(JSON):", txt));
-      } catch (err) {
-        console.log(k, "=> Blob (cannot read in debug)", err);
-      }
-    } else console.log(k, "=>", v);
-  }
-  console.log("== end debug ==");
+  const realFiles = Array.isArray(resourceFiles)
+    ? resourceFiles.filter((f) => f instanceof File)
+    : [];
+
+  realFiles.forEach((file) => {
+    fd.append("resourceFiles", file);
+  });
 
   const res = await fetch(`${BASE_URL}/backoffice/courses`, {
     method: "POST",
-    headers: getAuthHeaders(true),
+    headers: getAuthHeaders(token),
     body: fd,
   });
 
@@ -112,7 +139,5 @@ export async function createCourse(courseData, coverFile, resourceFiles = []) {
     const txt = await res.text();
     throw new Error("Tạo khóa học thất bại: " + txt);
   }
-
   return res.json();
-  
 }

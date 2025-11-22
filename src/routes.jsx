@@ -8,6 +8,7 @@ import TryCourse from "@/pages/Courses/TryCourse";
 import CourseDetail from "./pages/Courses/CourseDetail";
 import PersonalCourse from "@/pages/Courses/PersonalCourse";
 import MyCourse from "@/pages/Courses/MyCourse";
+import UserConversation from "@/pages/AI Conversation/UserConversation"
 
 export const routes = [
   {
@@ -23,6 +24,11 @@ export const routes = [
     name: "Khóa học",
     path: "/courses",
     element: <Courses />,
+  },
+  {
+    name: "Luyện nghe AI",
+    path: "/userconversation",
+    element: <UserConversation />,
   },
   {
     path: "/payment",        

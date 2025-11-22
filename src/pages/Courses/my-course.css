@@ -20,6 +20,7 @@
   padding-top: calc(var(--navbar-h, 80px) + 40px);
   width: 100%;
   padding-bottom: 0;
+  max-width: 1320px;
 }
 
 .mc-footer {

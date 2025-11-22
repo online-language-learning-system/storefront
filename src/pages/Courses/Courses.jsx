@@ -1,34 +1,23 @@
 import React, { useEffect, useState } from "react";
-import { createCourse,getAllCourses } from "@/api/courseApi"; 
-import { addToCart,getCart } from "@/api/cartApi";
+import { createCourse, getAllCourses } from "@/api/courseApi"; 
+import { addToCart, getCart } from "@/api/cartApi";
 import { useNavigate } from "react-router-dom"; 
 import Footer from "@/components/Footer";
-
+import { getTokenClaims } from "@/api/courseApi";
+import { getCurrentUser } from "@/utils/Auth";
 const Courses = () => {
-  const user = JSON.parse(localStorage.getItem("user") || "{}");
+  const [user, setUser] = useState({});
+  const [isLecturer, setIsLecturer] = useState(false);
+  const [courses, setCourses] = useState([]);
+  const [loading, setLoading] = useState(true);
+
   const [showSuccess, setShowSuccess] = useState(false);
   const [cartMessage, setCartMessage] = useState("");
   const [showCartMessage, setShowCartMessage] = useState(false);
-  const showCartNotification = (msg) => {
-  setCartMessage(msg);
-  setShowCartMessage(true);
-  setTimeout(() => setShowCartMessage(false), 2000); 
-};
-  const handleShowSuccess = () => {
-  setShowSuccess(true);
-  setTimeout(() => setShowSuccess(false), 2000); 
-};
-  const token = localStorage.getItem("accessToken"); 
-  const navigate = useNavigate();
-  const emptyResource = () => ({ resourceType: "TEXT", resourceUrl: "Content", file: null });
 
-  console.log('Current user:', user);
-  console.log('User role:', user.role);
-  const [courses, setCourses] = useState([]);
   const [showForm, setShowForm] = useState(false);
-  const [currentStep, setCurrentStep] = useState(1); 
+  const [currentStep, setCurrentStep] = useState(1);
   const [isCreating, setIsCreating] = useState(false);
-  const [loading, setLoading] = useState(true);
 
   // Filter
   const [search, setSearch] = useState("");
@@ -39,7 +28,12 @@ const Courses = () => {
   // Pagination
   const [pageNo, setPageNo] = useState(0);
   const pageSize = 9;
+
   const [selectedFile, setSelectedFile] = useState(null); 
+  const navigate = useNavigate();
+
+  const emptyResource = () => ({ resourceType: "TEXT", resourceUrl: "Content", file: null });
+
   const [newCourse, setNewCourse] = useState({
     title: "Khóa học demo",
     teachingLanguage: "Tiếng Việt",
@@ -66,23 +60,50 @@ const Courses = () => {
       },
     ],
   });
+
+  const showCartNotification = (msg) => {
+    setCartMessage(msg);
+    setShowCartMessage(true);
+    setTimeout(() => setShowCartMessage(false), 2000);
+  };
+
+  const handleShowSuccess = () => {
+    setShowSuccess(true);
+    setTimeout(() => setShowSuccess(false), 2000);
+  };
 useEffect(() => {
-  async function fetchCourses() {
+  async function fetchUserAndCourses() {
     try {
-      setLoading(true);
-      const data = await getAllCourses();
-      console.log("== getAllCourses response ==", data);
+      const userString = localStorage.getItem("user"); 
+      if (!userString) {
+        console.warn("User chưa đăng nhập hoặc username không tồn tại!");
+        setLoading(false);
+        return;
+      }
+      const currentUser = JSON.parse(userString);
+      setUser(currentUser);
+
+      const lecturer = currentUser.username === "lecturer001";
+      setIsLecturer(lecturer);
+      console.log("Current user:", currentUser);
+      console.log("Is lecturer:", lecturer);
+
+      const token = localStorage.getItem("accessToken"); 
+      const data = await getAllCourses(token);
       const courseList = Array.isArray(data.courseInfo) ? data.courseInfo : [];
       setCourses(courseList);
+      console.log("Courses loaded:", courseList);
 
     } catch (err) {
-      console.error("Lỗi khi load khóa học:", err);
+      console.error("Lỗi khi load user hoặc khóa học:", err);
     } finally {
       setLoading(false);
     }
   }
-  fetchCourses();
+
+  fetchUserAndCourses();
 }, []);
+
   const handleCoverChange = (e) => {
     const f = e.target.files && e.target.files[0];
     setSelectedFile(f || null);
@@ -338,25 +359,69 @@ const paginatedCourses = filteredCourses.slice(
   useEffect(() => setPageNo(0), [search, language, price, freeOnly]);
 
 
-  const handleBuyNow = async (course) => {
+const handleBuyNow = async (course) => {
   try {
     const courseId = course.courseId || course.id;
     if (!courseId) {
-      alert("Khóa học này không hợp lệ, không thể thêm vào giỏ!");
+      alert("Khóa học này không hợp lệ!");
       return;
     }
-    const token = localStorage.getItem("accessToken") || "";
-    await addToCart(courseId, token);
-    const newCart = await getCart(token);
-    localStorage.setItem("cart", JSON.stringify(newCart));
-    window.dispatchEvent(new Event("cartUpdated"));
-    navigate("/payment");
+
+    // Thử thêm vào cart qua API
+    try {
+      await addToCart(courseId, 1);
+      
+      // Lấy giỏ hàng mới sau khi thêm (getCart() cũng tự lấy token)
+      const newCart = await getCart();
+      localStorage.setItem("cart", JSON.stringify(newCart));
+      window.dispatchEvent(new Event("cartUpdated"));
+      
+      navigate("/payment");
+      return;
+    } catch (apiError) {
+      console.warn("⚠️ API thất bại, dùng localStorage cart làm fallback:", apiError);
+      
+      const cart = JSON.parse(localStorage.getItem("cart")) || [];
+      const existing = cart.find(
+        (item) => item.courseId === courseId || item.id === courseId
+      );
+
+      if (existing) {
+        showCartNotification(`⚠️ Khóa học "${course.title}" đã có trong giỏ hàng.`);
+      } else {
+        cart.push({
+          id: courseId,
+          courseId: courseId,
+          courseName: course.title,
+          title: course.title,
+          price: Number(course.price || 0),
+          instructor: course.instructor || course.createdBy || "Không rõ",
+          quantity: 1,
+          imageUrl: course.imagePresignedUrl || course.imageUrl || course.image || "",
+        });
+
+        localStorage.setItem("cart", JSON.stringify(cart));
+        window.dispatchEvent(new Event("cartUpdated"));
+        showCartNotification(`✅ Đã thêm "${course.title}" vào giỏ hàng (chế độ offline)!`);
+      }
+
+      // Vẫn chuyển đến trang thanh toán
+      navigate("/payment");
+    }
+
   } catch (err) {
     console.error("❌ Lỗi khi mua ngay:", err);
-    alert("Có lỗi khi mua ngay! Vui lòng thử lại sau.");
+    const errorMessage = err.message || "Có lỗi khi mua ngay! Vui lòng thử lại sau.";
+    
+    // Show more detailed error message
+    if (errorMessage.includes("đăng nhập")) {
+      alert(errorMessage);
+      navigate("/login");
+    } else {
+      alert(`Lỗi: ${errorMessage}`);
+    }
   }
 };
-
   const handleAddToCart = (course) => {
   const cart = JSON.parse(localStorage.getItem("cart")) || [];
   const existing = cart.find(
@@ -989,7 +1054,7 @@ const handleToggleModule = (modIdx) => {
           </h1>
         </div>
       </div>
-      {user.role !== "student" && (
+      {user?.username === "lecturer001" && (
   <div className="container mx-auto px-6 py-6 flex justify-end">
     <button
       onClick={() => setShowForm(true)}
@@ -1171,15 +1236,18 @@ const handleToggleModule = (modIdx) => {
 )}
 {showSuccess && (
   <div
-    className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 
-               bg-green-600 text-white px-10 py-6 rounded-xl shadow-2xl 
-               text-2xl font-bold animate-fade-in-out z-[9999] scale-105"
+    className="fixed inset-0 flex items-center justify-center z-[9999]"
   >
-    🎉 Tạo khóa học thành công!
+    <div
+      className="bg-green-600 text-white px-10 py-6 rounded-xl shadow-2xl 
+                 text-2xl font-bold animate-fade-in-out scale-105"
+    >
+      🎉 Tạo khóa học thành công!
+    </div>
   </div>
 )}
-      <div className="container w-full mx-auto px-6 py-12 grid grid-cols-1 lg:grid-cols-[18rem_1fr] gap-6 flex-1 items-start">
-       <aside className="bg-gradient-to-br from-white to-gray-50 rounded-3xl shadow-xl border border-gray-100 p-8 sticky top-24 backdrop-blur-sm h-fit">
+      <div className="w-[1320px] mx-auto px-6 py-12 grid grid-cols-1 lg:grid-cols-[18rem_1fr] gap-6">
+      <aside className="bg-gradient-to-br from-white to-gray-50 rounded-3xl shadow-xl border border-gray-100 p-8 sticky top-24 backdrop-blur-sm h-fit"> 
           <div className="flex items-center gap-3 mb-8 pb-6 border-b-2 border-gradient-to-r from-[#910c4e]/20 to-transparent">
             <div className="w-10 h-10 bg-gradient-to-r from-[#910c4e] to-[#b91c5a] rounded-2xl flex items-center justify-center shadow-lg">
               <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
