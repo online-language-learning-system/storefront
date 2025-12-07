@@ -26,7 +26,7 @@ export const routes = [
     element: <Courses />,
   },
   {
-    name: "Luyện nghe AI",
+    name: "Luyện nói AI",
     path: "/userconversation",
     element: <UserConversation />,
   },

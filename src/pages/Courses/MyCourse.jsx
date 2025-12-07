@@ -1,171 +1,184 @@
-import React, { useMemo, useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import "./my-course.css";
+import React, { useState, useEffect } from "react";
 import Footer from "@/components/Footer";
+import { Progress } from "@material-tailwind/react";
+import { BookOpenIcon } from "@heroicons/react/24/solid";
+import { getProgressById } from "@/api/progressApi"; // import API của bạn
+import { useNavigate } from "react-router-dom";
 
-const FALLBACK = [
-  { id: 1,  title: "Khóa học tiếng Nhật N5 - Cơ bản", desc: "20 bài • 5 giờ",  progress: 45, status: "learning",  image: "https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=400&q=50" },
-  { id: 2,  title: "Luyện thi JLPT N4 - Ngữ pháp nâng cao", desc: "18 bài • 4 giờ",  progress: 100, status: "completed", image: "https://images.unsplash.com/photo-1513258496099-48168024aec0?auto=format&fit=crop&w=400&q=50" },
-  { id: 3,  title: "Từ vựng tiếng Nhật N3 theo chủ đề", desc: "24 bài • 6 giờ",  progress: 0,  status: "purchased", image: "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=400&q=50" },
-  { id: 4,  title: "Nghe hiểu tiếng Nhật N5 cơ bản", desc: "16 bài • 3 giờ",  progress: 20, status: "learning",  image: "https://images.unsplash.com/photo-1503676260728-1c00da094a0b?auto=format&fit=crop&w=400&q=50" },
-];
-
-const PER_PAGE = 8;
-
-function ProgressLine({ percent }) {
-  return (
-    <>
-      <div className="progress" aria-label="Tiến trình học">
-        <div className="progress__bar" style={{ width: `${percent}%` }} />
-      </div>
-      <div className="progress__text">{percent > 0 ? `${percent}%` : "Chưa bắt đầu"}</div>
-    </>
-  );
-}
-
-function CourseCard({ c }) {
-  const hasProgress = c.progress > 0;
-  const handleImgError = (e) => {
-    e.currentTarget.src =
-      "data:image/svg+xml;utf8," +
-      encodeURIComponent(
-        `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 240'>
-           <rect width='100%' height='100%' fill='#f0f0f0'/>
-           <text x='50%' y='50%' text-anchor='middle' fill='#888' font-family='sans-serif' font-size='16'>
-             No image
-           </text>
-         </svg>`
-      );
-  };
-
-  return (
-    <article className="course">
-      <div className="course__thumb">
-        <img src={c.image} alt={c.title} onError={handleImgError} />
-      </div>
-      <div className="course__body">
-        <div>
-          <h3 className="course__title">{c.title}</h3>
-          <p className="course__meta">{c.desc}</p>
-          <p className="course__status">
-            {hasProgress ? "Bạn đang học khóa này." : "Khóa học đã mua, hãy bắt đầu học ngay!"}
-          </p>
-          <ProgressLine percent={c.progress} />
-        </div>
-
-        <div className="course__actions">
-          <button
-            className="btn btn--primary"
-            onClick={() => alert(`${hasProgress ? "Tiếp tục" : "Bắt đầu"}: ${c.title}`)}
-          >
-            {hasProgress ? "Tiếp tục" : "Bắt đầu"}
-          </button>
-          <button className="btn btn--outline">Chi tiết</button>
-        </div>
-      </div>
-    </article>
-  );
-}
-
-export default function MyCourse() {
-  const navigate = useNavigate();
+const PersonalCourse = () => {
   const [filter, setFilter] = useState("learning");
-  const [page, setPage] = useState(1);
-  const [courses] = useState(FALLBACK);
-  const [user, setUser] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [courses, setCourses] = useState([]);
+  const itemsPerPage = 3;
+  const navigate = useNavigate();
 
   useEffect(() => {
-    const userData = localStorage.getItem("user");
-    if (userData) setUser(JSON.parse(userData));
+    // giả lập fetch từ API enrollment/progress
+    const fetchCourses = async () => {
+      try {
+        const courseIds = [1,2,3,4,5,6,7,8,9,10,11,12,13];
+        const promises = courseIds.map(id => getProgressById(id));
+        const results = await Promise.all(promises);
+        setCourses(results);
+      } catch (err) {
+        console.error("Không lấy được dữ liệu courses:", err);
+      }
+    };
+    fetchCourses();
   }, []);
 
-  const homeCourses = useMemo(() => courses.filter((c) => c.status !== "completed"), [courses]);
-  const filtered = useMemo(() => {
-    if (filter === "learning") return homeCourses.filter((c) => c.progress > 0);
-    if (filter === "not_started") return homeCourses.filter((c) => c.progress === 0);
-    return homeCourses;
-  }, [filter, homeCourses]);
+  const filteredCourses = courses.filter(course => {
+    if (filter === "learning") return course.progress > 0 && course.progress < 100;
+    if (filter === "completed") return course.progress === 100;
+    if (filter === "purchased") return course.status === "purchased" || course.progress === 0;
+    return true;
+  });
 
-  const totalPages = Math.ceil(filtered.length / PER_PAGE) || 1;
-  const pageItems = useMemo(() => {
-    const start = (page - 1) * PER_PAGE;
-    return filtered.slice(start, start + PER_PAGE);
-  }, [page, filtered]);
+  const totalPages = Math.ceil(filteredCourses.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginatedCourses = filteredCourses.slice(startIndex, startIndex + itemsPerPage);
+
+  const handlePrev = () => currentPage > 1 && setCurrentPage(currentPage - 1);
+  const handleNext = () => currentPage < totalPages && setCurrentPage(currentPage + 1);
 
   return (
-    <main className="mc-shell">
-      <section className="mc-panel">
-        <header className="mc-header">
-          <h1 className="mc-title">Khóa học của tôi</h1>
-        </header>
+    <div className="flex flex-col min-h-screen pt-24 bg-[#7D1B4E]">
+      <div className="text-center mb-8">
+        <h1 className="text-3xl font-semibold text-white mb-2">Khóa học của bạn</h1>
+        <p className="text-gray-200 text-lg">
+          Quản lý tiến độ và truy cập nhanh các khóa học đã mua
+        </p>
+      </div>
 
-        {!user ? (
-          <div className="login-notice">
-            <h2>Vui lòng đăng nhập để xem tiến độ khóa học</h2>
-            <p>Đăng nhập để theo dõi quá trình học và truy cập nội dung của bạn.</p>
-            <button onClick={() => navigate("/auth")} className="btn-login-notice">
-              Đăng nhập ngay
-            </button>
-          </div>
+      {/* Nút lọc */}
+      <div className="flex justify-center mb-10 space-x-4">
+        <button
+          onClick={() => { setFilter("learning"); setCurrentPage(1); }}
+          className={`px-5 py-2 rounded-full font-medium transition-all ${
+            filter === "learning"
+              ? "bg-white text-[#7D1B4E]"
+              : "bg-[#910c4e] text-white hover:bg-[#b31763]"
+          }`}
+        >
+          Đang học
+        </button>
+        <button
+          onClick={() => { setFilter("completed"); setCurrentPage(1); }}
+          className={`px-5 py-2 rounded-full font-medium transition-all ${
+            filter === "completed"
+              ? "bg-white text-[#7D1B4E]"
+              : "bg-[#910c4e] text-white hover:bg-[#b31763]"
+          }`}
+        >
+          Đã học
+        </button>
+        <button
+          onClick={() => { setFilter("purchased"); setCurrentPage(1); }}
+          className={`px-5 py-2 rounded-full font-medium transition-all ${
+            filter === "purchased"
+              ? "bg-white text-[#7D1B4E]"
+              : "bg-[#910c4e] text-white hover:bg-[#b31763]"
+          }`}
+        >
+          Đã mua
+        </button>
+      </div>
+
+      {/* Danh sách khóa học */}
+      <div className="flex flex-col gap-6 max-w-6xl mx-auto px-4 mb-16">
+        {paginatedCourses.length === 0 ? (
+          <p className="text-center text-gray-200">
+            Không có khóa học nào phù hợp với bộ lọc.
+          </p>
         ) : (
-          <>
-            <div className="mc-filters">
-              <button
-                className={`chip ${filter === "learning" ? "chip--ghost is-active" : "chip--ghost"}`}
-                onClick={() => { setFilter("learning"); setPage(1); }}
-              >
-                Đang học
-              </button>
-              <button
-                className={`chip ${filter === "not_started" ? "chip--solid is-active" : "chip--solid"}`}
-                onClick={() => { setFilter("not_started"); setPage(1); }}
-              >
-                Chưa bắt đầu
-              </button>
+          paginatedCourses.map(course => (
+            <div
+              key={course.id}
+              className="bg-white flex flex-col sm:flex-row rounded-lg shadow-md hover:shadow-lg transition-all p-4 sm:p-5 min-h-[200px]"
+            >
+              <img
+                src={course.image}
+                alt={course.title}
+                className="rounded-lg w-full sm:w-1/4 h-48 sm:h-52 object-cover mb-3 sm:mb-0 sm:mr-4 flex-shrink-0"
+              />
+
+              <div className="flex flex-col justify-between w-full">
+                <div>
+                  <div className="flex items-center mb-1">
+                    <BookOpenIcon className="w-6 h-6 text-[#910c4e] mr-2" />
+                    <h2 className="text-lg font-semibold text-gray-800">{course.title}</h2>
+                  </div>
+                  <p className="text-gray-600 text-sm mb-2">
+                    {course.progress === 0
+                      ? "Khóa học đã mua, hãy bắt đầu học ngay!"
+                      : course.progress < 100
+                      ? "Bạn đang học khóa này."
+                      : "Bạn đã hoàn thành khóa học này."}
+                  </p>
+                </div>
+
+                <div className="flex flex-col gap-2">
+                  <div className="flex justify-between text-xs text-gray-600 mb-1">
+                    <span>Tiến độ học</span>
+                    <span>{course.progress}%</span>
+                  </div>
+                  <Progress value={course.progress} color="green" className="h-2 w-full" />
+
+                  <div className="flex gap-2 mt-2">
+                    {course.progress < 100 && (
+                      <button
+                        onClick={() => navigate(`/courses/${course.id}`)}
+                        className={`px-4 py-2 rounded-full font-medium bg-[#910c4e] text-white hover:bg-[#b31763]`}
+                      >
+                        {course.progress === 0 ? "Bắt đầu" : "Tiếp tục"}
+                      </button>
+                    )}
+                    <button
+                      onClick={() => navigate(`/courses/${course.id}`)}
+                      className="px-4 py-2 rounded-full font-medium bg-gray-200 text-[#7D1B4E] hover:bg-gray-300"
+                    >
+                      Chi tiết
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
-
-            <section id="courseList" className="course-list">
-              {pageItems.length === 0 ? (
-                <p className="empty">Không có khóa học phù hợp.</p>
-              ) : (
-                pageItems.map((c) => <CourseCard key={c.id} c={c} />)
-              )}
-            </section>
-
-            {totalPages > 1 && (
-              <nav id="pagination" className="pagination">
-                <button
-                  className="page-btn"
-                  disabled={page === 1}
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
-                >
-                  ‹
-                </button>
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
-                  <button
-                    key={p}
-                    className={`page-btn ${p === page ? "active" : ""}`}
-                    onClick={() => setPage(p)}
-                  >
-                    {p}
-                  </button>
-                ))}
-                <button
-                  className="page-btn"
-                  disabled={page === totalPages}
-                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                >
-                  ›
-                </button>
-              </nav>
-            )}
-          </>
+          ))
         )}
-      </section>
+      </div>
 
-      <footer className="mc-footer">
-        <Footer />
-      </footer>
-    </main>
+      {/* Phân trang */}
+      {totalPages > 1 && (
+        <div className="flex justify-center mb-16 space-x-4">
+          <button
+            onClick={handlePrev}
+            disabled={currentPage === 1}
+            className={`px-4 py-2 rounded-full font-medium ${
+              currentPage === 1
+                ? "bg-gray-300 text-gray-600 cursor-not-allowed"
+                : "bg-[#910c4e] text-white hover:bg-[#b31763]"
+            }`}
+          >
+            Trang trước
+          </button>
+          <button
+            onClick={handleNext}
+            disabled={currentPage === totalPages}
+            className={`px-4 py-2 rounded-full font-medium ${
+              currentPage === totalPages
+                ? "bg-gray-300 text-gray-600 cursor-not-allowed"
+                : "bg-[#910c4e] text-white hover:bg-[#b31763]"
+            }`}
+          >
+            Trang sau
+          </button>
+        </div>
+      )}
+
+      <div className="w-full border-t-4 border-[#910c4e]/60 mb-4"></div>
+      <Footer />
+    </div>
   );
-}
+};
+
+export default PersonalCourse;

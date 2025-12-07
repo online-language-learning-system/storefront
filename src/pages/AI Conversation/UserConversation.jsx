@@ -1,11 +1,24 @@
+
 import React, { useState, useRef } from 'react';
 import Footer from '@/components/Footer';
 import {
   createConversation,
   sendMessage,
-  sendVoice,
   translateText
 } from "@/api/AIConversationApi";
+import {
+  ChatBubbleLeftRightIcon,
+  MicrophoneIcon,
+  PaperAirplaneIcon,
+  SpeakerWaveIcon,
+  LanguageIcon,
+  AcademicCapIcon,
+  BookOpenIcon,
+  SparklesIcon,
+  RocketLaunchIcon,
+  UserIcon,
+  CpuChipIcon
+} from '@heroicons/react/24/outline';
 import './user-conversation.css';
 
 function UserConversation() {
@@ -18,7 +31,6 @@ function UserConversation() {
 
   const mediaRecorder = useRef(null);
   const audioChunks = useRef([]);
-
   const [level, setLevel] = useState('');
   const [topic, setTopic] = useState('');
   const [hasStarted, setHasStarted] = useState(false);
@@ -31,120 +43,174 @@ function UserConversation() {
     'Sở thích'
   ];
 
-  // ================================ Bắt đầu hội thoại ================================
   const startConversation = async () => {
-  if (!level || !topic) {
-    alert('Vui lòng chọn level và chủ đề!');
-    return;
-  }
-
-  setLoading(true);
-  try {
-    const res = await createConversation(level, topic);
-
-    // Lấy conversation ID từ res.id
-    setConversationId(res.id);
-
-    // Lấy message đầu tiên nếu có, nếu chưa có thì hiển thị placeholder
-    const firstMessage = res.messages?.[0] || {
-      id: crypto.randomUUID(),
-      type: 'ai',
-      text: 'Chào! Hãy bắt đầu hội thoại.',
-      audio: null
-    };
-
-    setMessages([
-      {
+    if (!level || !topic) {
+      alert('Vui lòng chọn level và chủ đề!');
+      return;
+    }
+    setLoading(true);
+    try {
+      const res = await createConversation(level, topic);
+      setConversationId(res.id);
+      const firstMessage = res.messages?.[0] || {
+        id: crypto.randomUUID(),
+        type: 'ai',
+        text: 'Chào! Hãy bắt đầu hội thoại.',
+        audio: null
+      };
+      setMessages([{
         id: firstMessage.id || crypto.randomUUID(),
         type: firstMessage.type || 'ai',
         text: firstMessage.content || firstMessage.text || 'Chào! Hãy bắt đầu hội thoại.',
         audio: firstMessage.audio_url || firstMessage.audio || null,
+      }]);
+      if (res.overall_score) setLatestScores(res.overall_score);
+      setHasStarted(true);
+    } catch (err) {
+      console.error(err);
+      alert(err.message || 'Không thể bắt đầu hội thoại. Thử lại!');
+    } finally {
+      setLoading(false);
+    }
+  };
+let recognition = null;
+
+const startSpeechRecognition = () => {
+  if (!window.SpeechRecognition && !window.webkitSpeechRecognition) {
+    alert("Trình duyệt không hỗ trợ Speech Recognition!");
+    return;
+  }
+
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  recognition = new SpeechRecognition();
+  recognition.lang = "ja-JP"; 
+  recognition.interimResults = false;
+
+  recognition.onstart = () => {
+    setIsRecording(true);
+
+    setMessages(prev => [
+      ...prev,
+      {
+        id: crypto.randomUUID(),
+        type: "user",
+        text: "🎙️ Đang nghe bạn nói...",
+        _pendingVoice: true
       }
     ]);
-
-    setHasStarted(true);
-  } catch (err) {
-    console.error(err);
-    alert('Không thể bắt đầu hội thoại. Thử lại!');
-  } finally {
-    setLoading(false);
-  }
-};
-
-  // ================================ Ghi âm ================================
-  const startRecording = async () => {
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    mediaRecorder.current = new MediaRecorder(stream);
-    audioChunks.current = [];
-
-    mediaRecorder.current.ondataavailable = e => audioChunks.current.push(e.data);
-    mediaRecorder.current.onstop = handleRecordingStop;
-    mediaRecorder.current.start();
-    setIsRecording(true);
   };
 
-  const stopRecording = () => {
-    mediaRecorder.current.stop();
+  recognition.onerror = (err) => {
+    console.error(err);
+    setIsRecording(false);
+    alert("Không nhận diện giọng nói được!");
+  };
+
+  recognition.onend = () => {
     setIsRecording(false);
   };
 
-  const toggleRecording = () => {
-    if (isRecording) stopRecording();
-    else startRecording();
-  };
+  recognition.onresult = async (event) => {
+    const text = event.results[0][0].transcript;
 
-  const handleRecordingStop = async () => {
-    const audioBlob = new Blob(audioChunks.current, { type: 'audio/wav' });
-    setLoading(true);
-    try {
-      const res = await sendVoice(conversationId, audioBlob, 2);
-      pushAIResponse(res);
-    } catch (err) {
-      console.error(err);
-      alert('Gửi giọng nói thất bại!');
-    }
-    setLoading(false);
-  };
+    setMessages(prev => prev.filter(m => !m._pendingVoice));
 
-  // ================================ Gửi text ================================
-  const handleSendText = async () => {
-    if (!inputText.trim()) return;
-
-    const userText = inputText;
     setMessages(prev => [
       ...prev,
-      { id: crypto.randomUUID(), type: 'user', text: userText }
-    ]);
-    setInputText('');
-
-    setLoading(true);
-    try {
-      const res = await sendMessage(conversationId, userText, 2);
-      pushAIResponse(res);
-    } catch (err) {
-      console.error(err);
-      alert('Gửi tin nhắn thất bại!');
-    }
-    setLoading(false);
-  };
-
-  // ================================ Thêm phản hồi AI ================================
-  const pushAIResponse = (res) => {
-    setMessages(prev => [
-      ...prev,
-      { id: crypto.randomUUID(), type: 'user', text: res.user_message.content },
       {
         id: crypto.randomUUID(),
-        type: 'ai',
-        text: res.ai_message.content,
-        audio: res.ai_message.audio_url || null,
-        scores: res.overall_score,
-        analysis: res.user_message.analysis
+        type: "user",
+        text
       }
     ]);
+
+    // Gửi cho AI
+    try {
+      const res = await sendMessage(conversationId, text);
+      pushAIResponse(res);
+    } catch (err) {
+      alert("Gửi tin nhắn thất bại!");
+    }
   };
 
-  // ================================ Dịch ================================
+  recognition.start();
+};
+
+const toggleRecording = () => {
+  if (isRecording) {
+    recognition?.stop();
+  } else {
+    startSpeechRecognition();
+  }
+};
+const handleRecordingStop = async () => {
+  setIsRecording(false);
+
+  const audioBlob = new Blob(audioChunks.current, { type: "audio/webm" });
+  audioChunks.current = [];
+  setMessages(prev => {
+    const idx = prev.findIndex(x => x._pendingVoice);
+    if (idx === -1) return prev;
+
+    const arr = [...prev];
+    arr[idx] = {
+      id: crypto.randomUUID(),
+      type: "user",
+      text: "🔊 Đang gửi ghi âm...",
+    };
+    return arr;
+  });
+
+  try {
+    if (!conversationId) throw new Error("Chưa có conversation!");
+
+    const res = await sendVoice(conversationId, audioBlob);
+
+    pushAIResponse(res);
+  } catch (err) {
+    console.error("sendVoice error:", err);
+    alert(err.message || "Gửi giọng nói thất bại!");
+  }
+};
+
+const handleSendText = async () => {
+  if (!inputText.trim()) return;
+
+  const text = inputText;
+  setInputText("");
+
+  setMessages(prev => [
+    ...prev,
+    { id: crypto.randomUUID(), type: "user", text }
+  ]);
+
+  try {
+    const res = await sendMessage(conversationId, text);
+    pushAIResponse(res);
+  } catch (err) {
+    alert("Lỗi gửi tin nhắn!");
+  }
+};
+
+const pushAIResponse = (res) => {
+  if (!res) return;
+
+  setLatestScores(res.overall_score || null);
+
+  const aiMsg = {
+    id: crypto.randomUUID(),
+    type: "ai",
+    text: res.ai_message?.content || "",
+    audio: res.ai_message?.audio_url || null,
+    analysis: res.ai_message?.analysis || null
+  };
+
+  setMessages(prev => [
+    ...prev.filter(m => !m._pendingVoice),
+    aiMsg
+  ]);
+};
+  // ======== Translate ========
   const translateMessage = async (msgId) => {
     const msg = messages.find(m => m.id === msgId);
     if (!msg) return;
@@ -153,11 +219,10 @@ function UserConversation() {
       setMessages(prev => prev.map(m => m.id === msgId ? { ...m, translation: res.translation } : m));
     } catch (err) {
       console.error(err);
-      alert('Dịch thất bại!');
+      alert(err.message || 'Dịch thất bại!');
     }
   };
 
-  // ================================ Phát audio ================================
   const playAudio = (message) => {
     if (!message.audio) return;
     new Audio(message.audio).play();
@@ -168,77 +233,134 @@ function UserConversation() {
       <div className="conversation-container">
         <div className="conversation-main">
           <div className="conversation-header">
-            <h1>AI-Luyện nói tiếng Nhật</h1>
+            <div className="header-content">
+              <ChatBubbleLeftRightIcon className="header-icon" />
+              <h1>AI-Luyện nói tiếng Nhật</h1>
+              <SparklesIcon className="header-sparkle" />
+            </div>
           </div>
 
           <div className="conversation-content">
             <div className="messages-container">
-
-              {/* Chọn level & topic ngay trong khung chat nếu chưa bắt đầu */}
               {!hasStarted && (
                 <div className="message system-message">
                   <div className="message-bubble">
-                    <select value={level} onChange={e => setLevel(e.target.value)}>
-                      <option value="">-- Chọn level --</option>
-                      <option value="N5">N5</option>
-                      <option value="N4">N4</option>
-                      <option value="N3">N3</option>
-                      <option value="N2">N2</option>
-                      <option value="N1">N1</option>
-                    </select>
+                    <div className="level-selection">
+                      <h3>
+                        <AcademicCapIcon className="selection-icon" />
+                        Chọn trình độ của bạn
+                      </h3>
+                      <div className="level-buttons">
+                        {['N5', 'N4', 'N3', 'N2', 'N1'].map(levelOption => (
+                          <button
+                            key={levelOption}
+                            onClick={() => setLevel(levelOption)}
+                            className={`level-btn ${level === levelOption ? 'selected' : ''}`}
+                          >
+                            {levelOption}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
 
-                    <div className="select-row">
-                      {suggestedTopics.map((t, idx) => (
-                        <button
-                          key={idx}
-                          onClick={() => setTopic(t)}
-                          className={topic === t ? 'selected-topic' : ''}
-                        >
-                          {t}
-                        </button>
-                      ))}
+                    <div className="topic-selection">
+                      <h3>
+                        <BookOpenIcon className="selection-icon" />
+                        Chọn chủ đề yêu thích
+                      </h3>
+                      <div className="select-row">
+                        {suggestedTopics.map((t, idx) => (
+                          <button
+                            key={idx}
+                            onClick={() => setTopic(t)}
+                            className={`topic-btn ${topic === t ? 'selected-topic' : ''}`}
+                          >
+                            {t}
+                          </button>
+                        ))}
+                      </div>
                       <input
                         type="text"
-                        placeholder="Nhập chủ đề tự do"
+                        className="custom-topic-input"
+                        placeholder="Hoặc nhập chủ đề tự do của bạn..."
                         value={topic}
                         onChange={e => setTopic(e.target.value)}
                       />
                     </div>
 
-                    <button className="start-btn" onClick={startConversation}>
-                      🚀 Bắt đầu luyện nói
+                    <button
+                      className={`start-btn ${loading ? 'loading' : ''}`}
+                      onClick={startConversation}
+                      disabled={!level || !topic || loading}
+                    >
+                      {loading ? (
+                        <div className="loading-content">
+                          <div className="spinner"></div>
+                        </div>
+                      ) : (
+                        <>                          
+                          Bắt đầu luyện nói
+                        </>
+                      )}
                     </button>
                   </div>
                 </div>
               )}
 
-              {/* Render tin nhắn */}
               {messages.map(m => (
                 <div key={m.id} className={`message ${m.type}-message`}>
-                  {m.type === 'ai' && <div className="ai-avatar"><span>AI</span></div>}
+                  {m.type === 'ai' ? (
+                    <div className="ai-avatar">
+                      <CpuChipIcon className="avatar-icon" />
+                    </div>
+                  ) : (
+                    <div className="user-avatar">
+                      <UserIcon className="avatar-icon" />
+                    </div>
+                  )}
                   <div className="message-bubble">
                     <p>{m.text}</p>
-                    {(m.audio || !m.translation) && (
-                      <div className="message-actions">
-                        {m.audio && <button className="audio-btn" onClick={() => playAudio(m)}>🔊</button>}
-                        {!m.translation && <button className="translate-btn" onClick={() => translateMessage(m.id)}>🔄</button>}
-                      </div>
+                    <div className="message-actions">
+                      {m.audio && (
+                        <button className="audio-btn" onClick={() => playAudio(m)} title="Phát âm thanh">
+                          <SpeakerWaveIcon className="action-icon" />
+                        </button>
+                      )}
+                      {!m.translation && m.type === 'ai' && (
+                        <button className="translate-btn" onClick={() => translateMessage(m.id)} title="Dịch sang tiếng Việt">
+                          <LanguageIcon className="action-icon" />
+                        </button>
+                      )}
+                    </div>
+                    {m.translation && (
+                      <p className="translation-text">
+                        <LanguageIcon className="translation-icon" />
+                        {m.translation}
+                      </p>
                     )}
-
-                    {m.translation && <p style={{marginTop:10,fontStyle:'italic',opacity:0.8}}>🇻🇳 {m.translation}</p>}
                   </div>
                 </div>
               ))}
 
               {loading && (
                 <div className="message ai-message">
-                  <div className="ai-avatar"><span>AI</span></div>
-                  <div className="message-bubble">⏳ AI đang soạn câu trả lời...</div>
+                  <div className="ai-avatar">
+                    <CpuChipIcon className="avatar-icon" />
+                  </div>
+                  <div className="message-bubble loading-message">
+                    <div className="typing-indicator">
+                      <div className="typing-dots">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                      </div>
+                      <span className="typing-text">AI đang soạn câu trả lời...</span>
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
 
-            {/* Input row */}
             {hasStarted && (
               <div className="bottom-input-row">
                 <input
@@ -248,38 +370,49 @@ function UserConversation() {
                   onChange={e => setInputText(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && handleSendText()}
                 />
-                <button className="send-btn" onClick={handleSendText}>📩</button>
+                <button className="send-btn" onClick={handleSendText} title="Gửi tin nhắn">
+                  <PaperAirplaneIcon className="btn-icon" />
+                </button>
                 <button
                   className={`voice-record-btn ${isRecording ? 'recording' : ''}`}
                   onClick={toggleRecording}
+                  title={isRecording ? 'Dừng ghi âm' : 'Bắt đầu ghi âm'}
                 >
-                  <img src="/img/microphoneai.png" alt="mic" style={{ width: 26 }} />
+                  <MicrophoneIcon className={`mic-icon ${isRecording ? 'recording' : ''}`} />
+                  {isRecording && <div className="recording-pulse"></div>}
                 </button>
               </div>
             )}
           </div>
         </div>
 
-        {/* Sidebar */}
         {hasStarted && (
           <div className="sidebar">
             <div className="user-stats">
-            <h3>Điểm của bạn</h3>
-
-            {latestScores ? (
-              <div className="score-box">
-                <p>⭐ Từ vựng: {latestScores.vocabulary}</p>
-                <p>⭐ Ngữ pháp: {latestScores.grammar}</p>
-                <p>⭐ Tự nhiên: {latestScores.naturalness}</p>
-                <p>⭐ Trôi chảy: {latestScores.fluency}</p>
-                <p><strong>Tổng: {latestScores.total}</strong></p>
-              </div>
-            ) : (
-              <p>Chưa có điểm — hãy gửi tin nhắn!</p>
-            )}
-          </div>
+              <h3>
+                <AcademicCapIcon className="stats-icon" />
+                Điểm của bạn
+              </h3>
+              {latestScores ? (
+                <div className="score-box">
+                  <p> Từ vựng: {latestScores.vocabulary}</p>
+                  <p> Ngữ pháp: {latestScores.grammar}</p>
+                  <p> Tự nhiên: {latestScores.naturalness}</p>
+                  <p> Trôi chảy: {latestScores.fluency}</p>
+                  <p><strong>Tổng: {latestScores.total}</strong></p>
+                </div>
+              ) : (
+                <p>Chưa có điểm — hãy gửi tin nhắn!</p>
+              )}
+            </div>
             <div className="course-recommendation">
-              <h3>Gợi ý khóa học</h3>
+              <h3>
+                <BookOpenIcon className="stats-icon" />
+                Gợi ý khóa học
+              </h3>
+              <div className="recommendation-content">
+                <p>Dựa trên điểm số của bạn, chúng tôi sẽ gợi ý các khóa học phù hợp.</p>
+              </div>
             </div>
           </div>
         )}

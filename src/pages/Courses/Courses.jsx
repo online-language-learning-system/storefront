@@ -4,7 +4,7 @@ import { addToCart, getCart } from "@/api/cartApi";
 import { useNavigate } from "react-router-dom"; 
 import Footer from "@/components/Footer";
 import { getTokenClaims } from "@/api/courseApi";
-import { getCurrentUser } from "@/utils/Auth";
+import { getUserRole } from "@/api/profileApi";
 const Courses = () => {
   const [user, setUser] = useState({});
   const [isLecturer, setIsLecturer] = useState(false);
@@ -74,25 +74,26 @@ const Courses = () => {
 useEffect(() => {
   async function fetchUserAndCourses() {
     try {
-      const userString = localStorage.getItem("user"); 
-      if (!userString) {
-        console.warn("User chưa đăng nhập hoặc username không tồn tại!");
+      const token = localStorage.getItem("accessToken"); // FIX 1
+      const userString = localStorage.getItem("user");
+
+      if (!token || !userString) {
+        console.warn("User chưa đăng nhập!");
         setLoading(false);
         return;
       }
+
       const currentUser = JSON.parse(userString);
       setUser(currentUser);
 
-      const lecturer = currentUser.username === "lecturer001";
-      setIsLecturer(lecturer);
-      console.log("Current user:", currentUser);
-      console.log("Is lecturer:", lecturer);
+      const role = await getUserRole();
+      console.log("User role:", role);
 
-      const token = localStorage.getItem("accessToken"); 
+      setIsLecturer(role?.toUpperCase() === "LECTURER");
+
       const data = await getAllCourses(token);
       const courseList = Array.isArray(data.courseInfo) ? data.courseInfo : [];
       setCourses(courseList);
-      console.log("Courses loaded:", courseList);
 
     } catch (err) {
       console.error("Lỗi khi load user hoặc khóa học:", err);
@@ -100,7 +101,6 @@ useEffect(() => {
       setLoading(false);
     }
   }
-
   fetchUserAndCourses();
 }, []);
 
@@ -1054,7 +1054,7 @@ const handleToggleModule = (modIdx) => {
           </h1>
         </div>
       </div>
-      {user?.username === "lecturer001" && (
+      {isLecturer && (
   <div className="container mx-auto px-6 py-6 flex justify-end">
     <button
       onClick={() => setShowForm(true)}
