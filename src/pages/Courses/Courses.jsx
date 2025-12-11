@@ -3,7 +3,6 @@ import { createCourse, getAllCourses } from "@/api/courseApi";
 import { addToCart, getCart } from "@/api/cartApi";
 import { useNavigate } from "react-router-dom"; 
 import Footer from "@/components/Footer";
-import { getTokenClaims } from "@/api/courseApi";
 import { getUserRole } from "@/api/profileApi";
 const Courses = () => {
   const [user, setUser] = useState({});
@@ -39,6 +38,7 @@ const Courses = () => {
     teachingLanguage: "Tiếng Việt",
     price: 0,
     categoryId: 1,
+    skillTag: "",
     description: "Mô tả khóa học demo",
     startDate: "",
     endDate: "",
@@ -60,6 +60,10 @@ const Courses = () => {
       },
     ],
   });
+  const tagDto = {
+  tagName: newCourse.skillTag, // quan trọng: phải có tagName
+  isActive: true               // có thể set mặc định true
+};
 
   const showCartNotification = (msg) => {
     setCartMessage(msg);
@@ -233,11 +237,13 @@ useEffect(() => {
 
 const handleCreateCourse = async (e) => {
   e.preventDefault();
-  if (!selectedFile)
-    return alert("Vui lòng chọn ảnh đại diện khóa học (cover)");
+  if (!selectedFile) return alert("Vui lòng chọn ảnh đại diện khóa học (cover)");
+  if (!newCourse.skillTag?.trim()) return alert("Vui lòng chọn kỹ năng trọng tâm cho khóa học");
+
   setIsCreating(true);
 
   try {
+    // Chuẩn hóa modules, lessons, resources
     const modules = newCourse.courseModules.map((mod, mi) => ({
       title: mod.title?.trim() || `Module ${mi + 1}`,
       description: mod.description || "",
@@ -250,10 +256,12 @@ const handleCreateCourse = async (e) => {
         resources: lesson.resources.map((r) => ({
           resourceType: (r.resourceType || "TEXT").toUpperCase(),
           resourceUrl: r.resourceUrl?.trim() || "Content",
+          files: r.files || [],
         })),
       })),
     }));
 
+    // Payload chính
     const payload = {
       title: newCourse.title?.trim() || "Khóa học demo",
       teachingLanguage: newCourse.teachingLanguage || "VN",
@@ -269,27 +277,40 @@ const handleCreateCourse = async (e) => {
       courseModules: modules,
     };
 
+    // Validate payload cơ bản
     validatePayload(payload);
+
+    // Gom tất cả resource files
     const resourceFiles = [];
-    newCourse.courseModules.forEach((mod) =>
+    modules.forEach((mod) =>
       mod.lessons.forEach((lesson) =>
         lesson.resources.forEach((r) => {
-          if (r.files && r.files.length > 0) {
-            resourceFiles.push(...r.files);
-          }
+          if (r.files && r.files.length > 0) resourceFiles.push(...r.files);
         })
       )
     );
 
+    // Tag DTO
+    const tagDto = {
+      tagName: newCourse.skillTag.trim(),
+      isActive: true,
+    };
+
     console.log("Payload JSON:", JSON.stringify(payload, null, 2));
+    console.log("Tag DTO:", tagDto);
     console.log("Cover file:", selectedFile);
     console.log("Resource files:", resourceFiles);
 
-    const response = await createCourse(payload, selectedFile, resourceFiles);
+    // Gọi API tạo khóa học
+    const token = localStorage.getItem("accessToken");
+    const response = await createCourse(payload, selectedFile, resourceFiles, tagDto, token);
+
     console.log("API response:", response);
 
     alert("🎉 Tạo khóa học thành công!");
     handleShowSuccess();
+
+    // Reset form
     setShowForm(false);
     setCurrentStep(1);
     setSelectedFile(null);
@@ -298,6 +319,7 @@ const handleCreateCourse = async (e) => {
       teachingLanguage: "Tiếng Việt",
       price: 0,
       categoryId: 1,
+      skillTag: "",
       description: "Mô tả khóa học demo",
       startDate: "",
       endDate: "",
@@ -319,6 +341,7 @@ const handleCreateCourse = async (e) => {
         },
       ],
     });
+
   } catch (err) {
     console.error("❌ Lỗi tạo khóa học:", err);
     alert(err.message || "Có lỗi khi tạo khóa học");
@@ -326,7 +349,6 @@ const handleCreateCourse = async (e) => {
     setIsCreating(false);
   }
 };
-
   const filteredCourses = courses.filter((course) => {
   const matchSearch = search
     ? course.title.toLowerCase().includes(search.toLowerCase())
@@ -529,6 +551,35 @@ const handleToggleModule = (modIdx) => {
                     <option value={4}>N2 - Trung cao cấp</option>
                     <option value={5}>N1 - Cao cấp</option>
                   </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+                    <svg className="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.99 1.99 0 013 12V7a4 4 0 014-4z" />
+                    </svg>
+                    Kỹ năng trọng tâm
+                  </label>
+                  <select
+                    value={newCourse.skillTag}
+                    onChange={(e) => setNewCourse({ ...newCourse, skillTag: e.target.value })}
+                    className="w-full border-2 border-gray-200 px-3 py-2.5 rounded-xl focus:ring-2 focus:ring-[#910c4e] focus:border-[#910c4e] transition-all duration-200 bg-white shadow-sm text-sm hover:border-gray-300"
+                  >
+                    <option value="" className="text-gray-400">-- Chọn kỹ năng --</option>
+                    <option value="Giao tiếp" className="flex items-center"> Giao tiếp</option>
+                    <option value="Nghe"> Nghe</option>
+                    <option value="Đọc hiểu"> Đọc hiểu</option>
+                    <option value="Ngữ pháp"> Ngữ pháp</option>
+                  </select>
+                  <div className="mt-2 flex flex-wrap gap-1">
+                    {newCourse.skillTag && (
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-indigo-100 to-purple-100 text-indigo-800 border border-indigo-200">
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.99 1.99 0 013 12V7a4 4 0 014-4z" />
+                        </svg>
+                        {newCourse.skillTag}
+                      </span>
+                    )}
+                  </div>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Giá khóa học (VND)</label>
@@ -1390,6 +1441,22 @@ const handleToggleModule = (modIdx) => {
             <h3 className="font-bold text-lg mb-2 text-[#910c4e] truncate w-full overflow-hidden whitespace-nowrap px-3 mt-3">
               {course.title}
             </h3>
+                      
+            {course.tags?.length > 0 && (
+            <div className="px-3 mb-2">
+              <div className="flex flex-wrap gap-1">
+                {course.tags.map((t, i) => (
+                  <span
+                    key={i}
+                    className="inline-block bg-gradient-to-r from-[#910c4e] to-[#b8185f] text-white text-xs px-2 py-1 rounded-full font-medium shadow-sm"
+                  >
+                    {t} {/* t là string tên tag */}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
             <p className="text-sm text-gray-600 mb-1 px-3">
               Ngôn ngữ giảng dạy: {course.teachingLanguage || course.teaching_language}
             </p>

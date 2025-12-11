@@ -77,6 +77,26 @@ export async function searchCourses({ pageNo = 0, pageSize = 9, courseTitle = ""
   }
   return res.json();
 }
+export async function getCoursesByTag({ tagName, pageNo = 0, pageSize = 9, token }) {
+  const params = new URLSearchParams();
+  params.append("tagName", tagName);
+  params.append("pageNo", pageNo);
+  params.append("pageSize", pageSize);
+
+  const res = await fetch(`${BASE_URL}/storefront/courses/by-tag?${params.toString()}`, {
+    headers: {
+      Accept: "application/json",
+      ...getAuthHeaders(token),
+    },
+  });
+
+  if (!res.ok) {
+    const txt = await res.text().catch(() => res.statusText);
+    throw new Error(txt || "Lỗi khi lấy khóa học theo tagName");
+  }
+
+  return res.json();
+}
 
 export async function getCourseModules(id, token) {
   const res = await fetch(`${BASE_URL}/storefront/${id}/modules`, {
@@ -106,8 +126,10 @@ export async function getModuleLessons(id, token) {
 }
 
 // createCourse unchanged, but ensure it uses getAuthHeaders(token) if you pass token
-export async function createCourse(courseData, coverFile, resourceFiles = [], token) {
+export async function createCourse(courseData, coverFile, resourceFiles = [], tagDto, token) {
   if (!coverFile) throw new Error("Ảnh khóa học bắt buộc");
+  if (!tagDto) throw new Error("Thiếu tagPostDto");
+
   const payload = {
     ...courseData,
     categoryId: Number(courseData.categoryId),
@@ -120,14 +142,17 @@ export async function createCourse(courseData, coverFile, resourceFiles = [], to
     "coursePostDto",
     new Blob([JSON.stringify(payload)], { type: "application/json;charset=UTF-8" })
   );
-  fd.append("courseImageFile", coverFile);
-  const realFiles = Array.isArray(resourceFiles)
-    ? resourceFiles.filter((f) => f instanceof File)
-    : [];
 
-  realFiles.forEach((file) => {
-    fd.append("resourceFiles", file);
-  });
+  fd.append("courseImageFile", coverFile);
+  if (Array.isArray(resourceFiles)) {
+    resourceFiles.forEach((file) => {
+      if (file instanceof File) fd.append("resourceFiles", file);
+    });
+  }
+  fd.append(
+    "tagPostDto", 
+    new Blob([JSON.stringify(tagDto)], { type: "application/json;charset=UTF-8" })
+  );
 
   const res = await fetch(`${BASE_URL}/backoffice/courses`, {
     method: "POST",
@@ -136,8 +161,9 @@ export async function createCourse(courseData, coverFile, resourceFiles = [], to
   });
 
   if (!res.ok) {
-    const txt = await res.text();
+    const txt = await res.text().catch(() => res.statusText);
     throw new Error("Tạo khóa học thất bại: " + txt);
   }
+
   return res.json();
 }
