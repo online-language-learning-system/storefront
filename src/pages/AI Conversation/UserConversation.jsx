@@ -42,7 +42,12 @@ function UserConversation() {
     'Đất nước của tôi',
     'Sở thích'
   ];
-
+  React.useEffect(() => {
+  window.speechSynthesis.onvoiceschanged = () => {
+    window.speechSynthesis.getVoices();
+  };
+}, []);
+  // ======== Conversation Handling ========
   const startConversation = async () => {
     if (!level || !topic) {
       alert('Vui lòng chọn level và chủ đề!');
@@ -194,21 +199,20 @@ const handleSendText = async () => {
 
 const pushAIResponse = (res) => {
   if (!res) return;
-
   setLatestScores(res.overall_score || null);
+  const text = res.ai_message?.content || "";
 
   const aiMsg = {
     id: crypto.randomUUID(),
     type: "ai",
-    text: res.ai_message?.content || "",
-    audio: res.ai_message?.audio_url || null,
+    text,
     analysis: res.ai_message?.analysis || null
   };
 
-  setMessages(prev => [
-    ...prev.filter(m => !m._pendingVoice),
-    aiMsg
-  ]);
+  setMessages(prev => [...prev, aiMsg]);
+
+  // 🔊 Tự động đọc
+  speakText(text, "ja-JP");
 };
   // ======== Translate ========
   const translateMessage = async (msgId) => {
@@ -222,11 +226,49 @@ const pushAIResponse = (res) => {
       alert(err.message || 'Dịch thất bại!');
     }
   };
+const getJapaneseMaleVoice = () => {
+  const voices = window.speechSynthesis.getVoices();
+
+  // Ưu tiên giọng nam tiếng Nhật
+  return (
+    voices.find(v =>
+      v.lang === "ja-JP" &&
+      /male|otoko|ichiro|takumi|daichi/i.test(v.name)
+    )
+    ||
+    // Fallback: giọng Nhật bất kỳ
+    voices.find(v => v.lang === "ja-JP")
+    ||
+    null
+  );
+};
 
   const playAudio = (message) => {
-    if (!message.audio) return;
-    new Audio(message.audio).play();
-  };
+  if (!message?.text) return;
+
+  // BE chỉ trả text → FE đọc
+  speakText(message.text, "ja-JP");
+};
+const speakText = (text) => {
+  if (!window.speechSynthesis) {
+    alert("Trình duyệt không hỗ trợ TTS");
+    return;
+  }
+
+  window.speechSynthesis.cancel();
+
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.lang = "ja-JP";
+  utterance.rate = 1;
+  utterance.pitch = 0.9; // giọng nam → trầm hơn
+  utterance.volume = 1;
+
+  const voice = getJapaneseMaleVoice();
+  if (voice) utterance.voice = voice;
+
+  window.speechSynthesis.speak(utterance);
+};
+
 
   return (
     <>
@@ -321,11 +363,15 @@ const pushAIResponse = (res) => {
                   <div className="message-bubble">
                     <p>{m.text}</p>
                     <div className="message-actions">
-                      {m.audio && (
-                        <button className="audio-btn" onClick={() => playAudio(m)} title="Phát âm thanh">
-                          <SpeakerWaveIcon className="action-icon" />
-                        </button>
-                      )}
+                      {m.type === 'ai' && (
+                      <button
+                        className="audio-btn"
+                        onClick={() => playAudio(m)}
+                        title="Nghe phát âm"
+                      >
+                        <SpeakerWaveIcon className="action-icon" />
+                      </button>
+                    )}
                       {!m.translation && m.type === 'ai' && (
                         <button className="translate-btn" onClick={() => translateMessage(m.id)} title="Dịch sang tiếng Việt">
                           <LanguageIcon className="action-icon" />
