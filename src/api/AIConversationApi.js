@@ -1,4 +1,3 @@
-
 const BASE_URL = "http://localhost:8000/api";
 
 function getAuthHeaders() {
@@ -34,7 +33,6 @@ export async function createConversation(level, topic) {
   if (!res.ok) throw new Error(await res.text());
   return res.json();
 }
-
 export async function sendMessage(conversationId, message, responseTime = 2) {
   if (!conversationId) throw new Error("conversationId is required");
 
@@ -54,7 +52,6 @@ export async function sendMessage(conversationId, message, responseTime = 2) {
   if (!res.ok) throw new Error("Gửi tin nhắn thất bại: " + await res.text());
   return res.json();
 }
-
 export async function translateText(japaneseText) {
   const res = await fetch(`${BASE_URL}/translation`, {
     method: "POST",
@@ -69,3 +66,56 @@ export async function translateText(japaneseText) {
   if (!res.ok) throw new Error(await res.text());
   return res.json();
 }
+export async function getRecommendations(conversationId) {
+  if (!conversationId) {
+    throw new Error("conversationId is required to fetch recommendations.");
+  }
+
+  console.log("Fetching recommendations with conversationId:", conversationId);
+
+  try {
+    const res = await fetch(
+      `${BASE_URL}/conversation/${conversationId}/recommendations`,
+      {
+        headers: {
+          Accept: "application/json",
+          ...getAuthHeaders(),
+        },
+      }
+    );
+
+    console.log("Response status:", res.status);
+    console.log("Response headers:", res.headers);
+    console.log("Full response body:", await res.clone().text());
+
+    if (!res.ok) {
+      const errorText = await res.text();
+      console.error("Failed to fetch recommendations. Error:", errorText);
+      throw new Error(`Failed to fetch recommendations: ${errorText}`);
+    }
+
+    const data = await res.json();
+    console.log("Recommendations response data:", data);
+    return data;
+  } catch (error) {
+    console.error("Error in getRecommendations:", error);
+    throw error;
+  }
+}
+export async function evaluateConversation(conversationId, jlptTarget) {
+  const res = await fetch(`${BASE_URL}/v1/ai/evaluate`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...getAuthHeaders()
+    },
+    body: JSON.stringify({
+      conversation_id: conversationId,
+      jlpt_target: jlptTarget
+    })
+  });
+
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+

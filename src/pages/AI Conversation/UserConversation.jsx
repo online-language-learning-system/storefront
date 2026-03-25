@@ -1,10 +1,11 @@
-
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect  } from 'react';
 import Footer from '@/components/Footer';
 import {
   createConversation,
   sendMessage,
-  translateText
+  translateText,
+  evaluateConversation,
+  getRecommendations
 } from "@/api/AIConversationApi";
 import {
   ChatBubbleLeftRightIcon,
@@ -28,6 +29,8 @@ function UserConversation() {
   const [inputText, setInputText] = useState('');
   const [isRecording, setIsRecording] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [recommendations, setRecommendations] = useState([]);
+  const [evaluating, setEvaluating] = useState(false);
 
   const mediaRecorder = useRef(null);
   const audioChunks = useRef([]);
@@ -47,6 +50,9 @@ function UserConversation() {
     window.speechSynthesis.getVoices();
   };
 }, []);
+ useEffect(() => {
+  console.log("RECOMMENDATIONS:", recommendations);
+}, [recommendations]);
   // ======== Conversation Handling ========
   const startConversation = async () => {
     if (!level || !topic) {
@@ -199,14 +205,12 @@ const handleSendText = async () => {
 
 const pushAIResponse = (res) => {
   if (!res) return;
-  setLatestScores(res.overall_score || null);
   const text = res.ai_message?.content || "";
-
   const aiMsg = {
     id: crypto.randomUUID(),
     type: "ai",
     text,
-    analysis: res.ai_message?.analysis || null
+  
   };
 
   setMessages(prev => [...prev, aiMsg]);
@@ -215,7 +219,7 @@ const pushAIResponse = (res) => {
   speakText(text, "ja-JP");
 };
   // ======== Translate ========
-  const translateMessage = async (msgId) => {
+const translateMessage = async (msgId) => {
     const msg = messages.find(m => m.id === msgId);
     if (!msg) return;
     try {
@@ -226,6 +230,86 @@ const pushAIResponse = (res) => {
       alert(err.message || 'Dịch thất bại!');
     }
   };
+const handleEvaluateConversation = async () => {
+  if (!conversationId) {
+    console.error("Missing conversationId. Cannot fetch recommendations.");
+    return;
+  }
+
+  console.log("Evaluating conversation with:", {
+    conversationId,
+    level,
+    topic,
+  });
+
+  setEvaluating(true);
+  try {
+    const evalRes = await evaluateConversation(conversationId, level);
+    const scores = evalRes?.scores || {};
+
+    setLatestScores({
+      vocabulary: scores.vocabulary ?? 0,
+      grammar: scores.grammar ?? 0,
+      naturalness: scores.naturalness ?? 0,
+      fluency: scores.fluency ?? 0,
+      total: Math.round(
+        (scores.vocabulary +
+          scores.grammar +
+          scores.naturalness +
+          scores.fluency / 10) / 4
+      )
+    });
+
+    const recRes = await getRecommendations(conversationId);
+    console.log("RAW RECOMMEND RESPONSE:", recRes);
+
+    // Normalize different possible response shapes from backend
+    let courses = [];
+    if (!recRes) {
+      console.warn("Empty recommendations response.");
+      setRecommendations([]);
+      return;
+    }
+
+    if (Array.isArray(recRes)) {
+      courses = recRes;
+    } else if (recRes.courseInfo && Array.isArray(recRes.courseInfo)) {
+      courses = recRes.courseInfo;
+    } else if (recRes.data && Array.isArray(recRes.data.courseInfo)) {
+      courses = recRes.data.courseInfo;
+    } else if (recRes.body && Array.isArray(recRes.body.courseInfo)) {
+      courses = recRes.body.courseInfo;
+    }
+
+    if (!courses || courses.length === 0) {
+      console.warn("No course list found in recommendations response:", recRes);
+      setRecommendations([]);
+      return;
+    }
+
+    console.log("Normalized courses count:", courses.length);
+
+    // Map API response fields to expected format with safe fallbacks
+    const mappedRecommendations = courses.map(course => ({
+      course_id: course.id ?? course.course_id ?? null,
+      title: course.title ?? course.name ?? "Untitled",
+      level: course.level ?? course.jlpt_level ?? "",
+      price: typeof course.price === 'number' ? course.price : Number(course.price) || 0,
+      image_url: course.imagePresignedUrl || course.image_presigned_url || course.image_url || course.image || null,
+    }));
+
+    console.log("MAPPED RECOMMENDATIONS:", mappedRecommendations);
+    setRecommendations(mappedRecommendations);
+  } catch (err) {
+    console.error("evaluate error:", err);
+    alert("Không thể đánh giá hội thoại! " + (err.message || ""));
+  } finally {
+    setEvaluating(false);
+  }
+};
+
+
+
 const getJapaneseMaleVoice = () => {
   const voices = window.speechSynthesis.getVoices();
 
@@ -431,39 +515,95 @@ const speakText = (text) => {
             )}
           </div>
         </div>
-
         {hasStarted && (
-          <div className="sidebar">
-            <div className="user-stats">
-              <h3>
-                <AcademicCapIcon className="stats-icon" />
-                Điểm của bạn
-              </h3>
-              {latestScores ? (
-                <div className="score-box">
-                  <p> Từ vựng: {latestScores.vocabulary}</p>
-                  <p> Ngữ pháp: {latestScores.grammar}</p>
-                  <p> Tự nhiên: {latestScores.naturalness}</p>
-                  <p> Trôi chảy: {latestScores.fluency}</p>
-                  <p><strong>Tổng: {latestScores.total}</strong></p>
+  <aside className="sidebar">
+    <section className="user-stats">
+      <h3 className="sidebar-title">
+        <AcademicCapIcon className="stats-icon" />
+        Đánh giá năng lực
+      </h3>
+
+      {latestScores ? (
+        <div className="score-box">
+          <div className="score-item">
+            <span> Từ vựng</span>
+            <strong>{latestScores.vocabulary}/10</strong>
+          </div>
+          <div className="score-item">
+            <span> Ngữ pháp</span>
+            <strong>{latestScores.grammar}/10</strong>
+          </div>
+          <div className="score-item">
+            <span> Tự nhiên</span>
+            <strong>{latestScores.naturalness}/10</strong>
+          </div>
+          <div className="score-item">
+            <span> Trôi chảy</span>
+            <strong>{latestScores.fluency}%</strong>
+          </div>
+
+          <div className="score-total">
+             Tổng điểm: <strong>{latestScores.total}</strong>
+          </div>
+        </div>
+      ) : (
+        <p className="empty-text">
+          Chưa có điểm — hãy bấm <strong>Đánh giá hội thoại</strong> khi xong.
+        </p>
+      )}
+
+      <button
+        onClick={handleEvaluateConversation}
+        disabled={evaluating}
+        className="evaluate-btn"
+      >
+        <SparklesIcon className="btn-icon" />
+        {evaluating ? "Đang đánh giá..." : "Đánh giá hội thoại"}
+      </button>
+    </section>
+
+    {/* ================= COURSE ================= */}
+    <section className="course-recommendation">
+      <h3 className="sidebar-title">
+        <BookOpenIcon className="stats-icon" />
+        Khóa học phù hợp
+      </h3>
+
+      {console.log("RENDERING RECOMMENDATIONS:", recommendations)}
+
+      {recommendations.length === 0 ? (
+        <div className="recommendation-empty">
+          Hoàn thành đánh giá để nhận khóa học phù hợp hoặc không có khóa học nào được đề xuất.
+        </div>
+      ) : (
+        <div className="recommendation-list upgraded-recommend-list">
+          {recommendations.map(course => (
+            <div key={course.course_id} className="course-card upgraded-course-card">
+              <div className="course-img-wrap">
+                {course.image_url ? (
+                  <img className="course-image-upgraded" src={course.image_url} alt={course.title} />
+                ) : (
+                  <div className="course-image-placeholder">No Image</div>
+                )}
+              </div>
+              <div className="course-info-upgraded">
+                <h4 className="course-title-upgraded">{course.title}</h4>
+                <div className="course-meta-upgraded">
+                  <span className="course-level-upgraded">Level: {course.level}</span>
+                  <span className="course-price-upgraded">
+                    {course.price === 0 ? "Miễn phí" : `${course.price.toLocaleString()}₫`}
+                  </span>
                 </div>
-              ) : (
-                <p>Chưa có điểm — hãy gửi tin nhắn!</p>
-              )}
-            </div>
-            <div className="course-recommendation">
-              <h3>
-                <BookOpenIcon className="stats-icon" />
-                Gợi ý khóa học
-              </h3>
-              <div className="recommendation-content">
-                <p>Dựa trên điểm số của bạn, chúng tôi sẽ gợi ý các khóa học phù hợp.</p>
+                <button className="course-detail-btn" onClick={() => window.open(`/courses/${course.course_id}`, '_blank')}>Xem chi tiết</button>
               </div>
             </div>
-          </div>
-        )}
+          ))}
+        </div>
+      )}
+    </section>
+  </aside>
+)}
       </div>
-
       <Footer />
     </>
   );

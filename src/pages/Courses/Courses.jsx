@@ -61,8 +61,8 @@ const Courses = () => {
     ],
   });
   const tagDto = {
-  tagName: newCourse.skillTag, // quan trọng: phải có tagName
-  isActive: true               // có thể set mặc định true
+  tagName: newCourse.skillTag, 
+  isActive: true               
 };
 
   const showCartNotification = (msg) => {
@@ -78,7 +78,7 @@ const Courses = () => {
 useEffect(() => {
   async function fetchUserAndCourses() {
     try {
-      const token = localStorage.getItem("accessToken"); // FIX 1
+      const token = localStorage.getItem("accessToken"); 
       const userString = localStorage.getItem("user");
 
       if (!token || !userString) {
@@ -250,12 +250,12 @@ const handleCreateCourse = async (e) => {
       orderIndex: Number(mod.orderIndex) || mi + 1,
       canFreeTrial: !!mod.canFreeTrial,
       lessons: mod.lessons.map((lesson, li) => ({
-        title: lesson.title?.trim() || `Bài học ${li + 1}`,
-        description: lesson.description || "",
-        duration: Number(lesson.duration) || 30,
-        resources: lesson.resources.map((r) => ({
-          resourceType: (r.resourceType || "TEXT").toUpperCase(),
-          resourceUrl: r.resourceUrl?.trim() || "Content",
+      title: lesson.title?.trim() || `Bài học ${li + 1}`,
+      description: lesson.description || "",
+      duration: Number(lesson.duration) || 30,
+      resources: lesson.resources.map((r) => ({
+      resourceType: (r.resourceType || "TEXT").toUpperCase(),
+      resourceUrl: r.resourceUrl?.trim() || "Content",
           files: r.files || [],
         })),
       })),
@@ -566,8 +566,8 @@ const handleToggleModule = (modIdx) => {
                   >
                     <option value="" className="text-gray-400">-- Chọn kỹ năng --</option>
                     <option value="Giao tiếp" className="flex items-center"> Giao tiếp</option>
-                    <option value="Nghe"> Nghe</option>
-                    <option value="Đọc hiểu"> Đọc hiểu</option>
+                    <option value="Luyện nghe"> Nghe</option>
+                    <option value="Từ Vựng"> Đọc hiểu</option>
                     <option value="Ngữ pháp"> Ngữ pháp</option>
                   </select>
                   <div className="mt-2 flex flex-wrap gap-1">
